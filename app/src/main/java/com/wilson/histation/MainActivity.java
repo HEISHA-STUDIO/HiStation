@@ -15,6 +15,7 @@ import android.os.Build;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.vividsolutions.jts.noding.snapround.MCIndexPointSnapper;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -33,12 +34,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import dji.common.battery.BatteryState;
 import dji.common.error.DJIError;
 import dji.common.error.DJISDKError;
+import dji.common.useraccount.UserAccountState;
+import dji.common.util.CommonCallbacks;
 import dji.sdk.base.BaseComponent;
 import dji.sdk.base.BaseProduct;
+import dji.sdk.battery.Battery;
 import dji.sdk.sdkmanager.DJISDKInitEvent;
 import dji.sdk.sdkmanager.DJISDKManager;
+import dji.sdk.useraccount.UserAccountManager;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -74,12 +80,14 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = getPackageManager()
+                /*Intent intent = getPackageManager()
                         .getLaunchIntentForPackage(getApplication().getPackageName());
                 PendingIntent restartIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, 0);
                 AlarmManager mgr = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
                 mgr.set(AlarmManager.RTC, System.currentTimeMillis() + 1000, restartIntent); // 1秒钟后重启应用
-                System.exit(0);
+                System.exit(0);*/
+
+                MediaFileManager.getInstance().handleFileListRequest();
             }
         });
 
@@ -231,10 +239,137 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private ArrayList<String> testBuf = new ArrayList<>();
+    private Runnable testProcess = new Runnable() {
+        @Override
+        public void run() {
+            while (true) {
+                boolean empty = false;
+                String message = "";
+
+                synchronized (testBuf) {
+                    if(testBuf.size() == 0)
+                        empty = true;
+                    else
+                        message = testBuf.remove(0);
+                }
+
+                if(empty) {
+                    try{
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    continue;
+                }
+
+                if(message.equals("Status")) {
+                    updateStatus();
+                } else if(message.equals("Battery")) {
+                    updateBattery();
+                }
+            }
+        }
+    };
+    private Thread threadTest = null;
+
     private HSCloudBridge.TestListener testListener = new HSCloudBridge.TestListener() {
         @Override
         public void onMessage(String msg) {
-            MApplication.LOG(msg);
+
+            synchronized (testBuf) {
+                testBuf.add(msg);
+            }
+
+            if(threadTest == null) {
+                threadTest = new Thread(testProcess);
+                threadTest.start();
+            }
+
         }
     };
+
+    private void updateStatus() {
+        if(MApplication.getProductInstance() == null) {
+            HSCloudBridge.getInstance().sendDebug("NONE Product");
+        } else {
+            HSCloudBridge.getInstance().sendDebug("HAS Product");
+        }
+
+        if(MApplication.getRemoteControllerInstance() == null) {
+            HSCloudBridge.getInstance().sendDebug("NONE RC");
+        } else {
+            HSCloudBridge.getInstance().sendDebug("HAS RC");
+            if(MApplication.getRemoteControllerInstance().isConnected()) {
+                HSCloudBridge.getInstance().sendDebug("RC connected");
+            } else {
+                HSCloudBridge.getInstance().sendDebug("RC disconnected");
+            }
+        }
+
+        if(MApplication.getCameraInstance() == null) {
+            HSCloudBridge.getInstance().sendDebug("NONE Camera");
+        } else {
+            HSCloudBridge.getInstance().sendDebug("HAS Camera");
+            if(MApplication.getCameraInstance().isConnected()) {
+                HSCloudBridge.getInstance().sendDebug("Camere connected");
+            } else {
+                HSCloudBridge.getInstance().sendDebug("Camera disconnected");
+            }
+        }
+
+        if(MApplication.getFlightControllerInstance() == null) {
+            HSCloudBridge.getInstance().sendDebug("NONE FC");
+        } else {
+            HSCloudBridge.getInstance().sendDebug("HAS FC");
+            if(MApplication.getFlightControllerInstance().isConnected()) {
+                HSCloudBridge.getInstance().sendDebug("FC Connected");
+            } else {
+                HSCloudBridge.getInstance().sendDebug("FC Disconncted");
+            }
+        }
+
+        if(MApplication.getBatteryInstance() == null) {
+            HSCloudBridge.getInstance().sendDebug("NONE Battery");
+        } else {
+            HSCloudBridge.getInstance().sendDebug("HAS Battery");
+            if(MApplication.getBatteryInstance().isConnected()) {
+                HSCloudBridge.getInstance().sendDebug("Battery conncted");
+            } else {
+                HSCloudBridge.getInstance().sendDebug("Battery disconnted");
+            }
+        }
+
+        if(MApplication.getGimbalInstance() == null) {
+            HSCloudBridge.getInstance().sendDebug("NONE Gimbal");
+        } else {
+            HSCloudBridge.getInstance().sendDebug("HAS Gimbal");
+            if(MApplication.getGimbalInstance().isConnected()) {
+                HSCloudBridge.getInstance().sendDebug("Gimbal connected");
+            } else {
+                HSCloudBridge.getInstance().sendDebug("Gimbal disconnected");
+            }
+        }
+
+        if(MApplication.getAirLinkInstance() == null) {
+            HSCloudBridge.getInstance().sendDebug("NONE Airlink");
+        } else {
+            HSCloudBridge.getInstance().sendDebug("HAS Airlink");
+            if(MApplication.getAirLinkInstance().isConnected()) {
+                HSCloudBridge.getInstance().sendDebug("Airlink connected");
+            } else {
+                HSCloudBridge.getInstance().sendDebug("Airlink disconnected");
+            }
+        }
+    }
+
+    private void updateBattery() {
+        Battery battery = MApplication.getBatteryInstance();
+
+        if(battery != null) {
+            if(battery.isConnected()) {
+
+            }
+        }
+    }
 }

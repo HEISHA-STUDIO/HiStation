@@ -37,6 +37,7 @@ class HSCloudBridge {
                     testListener.onMessage(new String(bytes));
                 }
             }
+
         }
 
         @Override

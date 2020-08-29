@@ -15,12 +15,24 @@ import com.secneo.sdk.Helper;
 
 import dji.common.error.DJIError;
 import dji.common.error.DJISDKError;
+import dji.sdk.airlink.AirLink;
 import dji.sdk.base.BaseComponent;
 import dji.sdk.base.BaseProduct;
+import dji.sdk.battery.Battery;
 import dji.sdk.camera.Camera;
+import dji.sdk.flightcontroller.FlightController;
+import dji.sdk.gimbal.Gimbal;
 import dji.sdk.products.Aircraft;
+import dji.sdk.remotecontroller.RemoteController;
 import dji.sdk.sdkmanager.DJISDKInitEvent;
 import dji.sdk.sdkmanager.DJISDKManager;
+
+import static dji.sdk.base.BaseProduct.ComponentKey.AIR_LINK;
+import static dji.sdk.base.BaseProduct.ComponentKey.BATTERY;
+import static dji.sdk.base.BaseProduct.ComponentKey.CAMERA;
+import static dji.sdk.base.BaseProduct.ComponentKey.FLIGHT_CONTROLLER;
+import static dji.sdk.base.BaseProduct.ComponentKey.GIMBAL;
+import static dji.sdk.base.BaseProduct.ComponentKey.REMOTE_CONTROLLER;
 
 public class MApplication extends Application {
 
@@ -67,11 +79,13 @@ public class MApplication extends Application {
                         @Override
                         public void onProductDisconnect() {
                             showToast("Product Disconnected");
+                            notifyStatusChange();
                         }
 
                         @Override
                         public void onProductConnect(BaseProduct baseProduct) {
                             showToast("Product Connect");
+                            notifyStatusChange();
                         }
 
                         @Override
@@ -81,7 +95,33 @@ public class MApplication extends Application {
 
                         @Override
                         public void onComponentChange(BaseProduct.ComponentKey componentKey, BaseComponent baseComponent, BaseComponent baseComponent1) {
-
+                            if (baseComponent1 != null) {
+                                if(componentKey.equals(REMOTE_CONTROLLER)) {
+                                    HSCloudBridge.getInstance().sendDebug("RC online");
+                                    RemoteControllerProxy.getInstance().setBatteryStateCallback((RemoteController)baseComponent1);
+                                }
+                                if(componentKey.equals(AIR_LINK)) {
+                                    HSCloudBridge.getInstance().sendDebug("Telemetry online");
+                                    //baseComponent1.setComponentListener((BaseComponent.ComponentListener)telemetry);
+                                }
+                                if(componentKey.equals(BATTERY)) {
+                                    HSCloudBridge.getInstance().sendDebug("Battery online");
+                                    BatteryProxy.getInstance().setCallback((Battery)baseComponent1);
+                                    //baseComponent1.setComponentListener((BaseComponent.ComponentListener)battery);
+                                }
+                                if(componentKey.equals(GIMBAL)) {
+                                    HSCloudBridge.getInstance().sendDebug("Gimbal online");
+                                    //baseComponent1.setComponentListener((BaseComponent.ComponentListener)gimbal);
+                                }
+                                if(componentKey.equals(CAMERA)) {
+                                    HSCloudBridge.getInstance().sendDebug("Camera online");
+                                    //baseComponent1.setComponentListener((BaseComponent.ComponentListener)camera);
+                                }
+                                if(componentKey.equals(FLIGHT_CONTROLLER)) {
+                                    HSCloudBridge.getInstance().sendDebug("FC online");
+                                    //baseComponent1.setComponentListener((BaseComponent.ComponentListener)flightController);
+                                }
+                            }
                         }
 
                         @Override
@@ -116,6 +156,56 @@ public class MApplication extends Application {
         }
     }
 
+    public static synchronized RemoteController getRemoteControllerInstance() {
+        if(getProductInstance() == null) return null;
+
+        if(getProductInstance() instanceof Aircraft) {
+            return ((Aircraft) getProductInstance()).getRemoteController();
+        } else {
+            return null;
+        }
+    }
+
+    public static synchronized FlightController getFlightControllerInstance() {
+        if(getProductInstance() == null) return null;
+
+        if(getProductInstance() instanceof Aircraft) {
+            return ((Aircraft) getProductInstance()).getFlightController();
+        } else {
+            return null;
+        }
+    }
+
+    public static synchronized Battery getBatteryInstance() {
+        if(getProductInstance() == null) return null;
+
+        if(getProductInstance() instanceof Aircraft) {
+            return ((Aircraft) getProductInstance()).getBattery();
+        } else {
+            return null;
+        }
+    }
+
+    public static synchronized Gimbal getGimbalInstance() {
+        if(getProductInstance() == null) return null;
+
+        if(getProductInstance() instanceof Aircraft) {
+            return ((Aircraft) getProductInstance()).getGimbal();
+        } else {
+            return null;
+        }
+    }
+
+    public static synchronized AirLink getAirLinkInstance() {
+        if(getProductInstance() == null) return null;
+
+        if(getProductInstance() instanceof Aircraft) {
+            return ((Aircraft) getProductInstance()).getAirLink();
+        } else {
+            return null;
+        }
+    }
+
     private void showToast(final String toastMsg) {
 
         Handler handler = new Handler(Looper.getMainLooper());
@@ -125,6 +215,10 @@ public class MApplication extends Application {
                 Toast.makeText(getApplicationContext(), toastMsg, Toast.LENGTH_LONG).show();
             }
         });
+
+    }
+
+    private void notifyStatusChange() {
 
     }
 }
