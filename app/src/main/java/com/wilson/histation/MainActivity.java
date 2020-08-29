@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.graphics.Camera;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkRequest;
@@ -14,6 +15,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 
+import com.MAVLink.enums.CAMERA_MODE;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.vividsolutions.jts.noding.snapround.MCIndexPointSnapper;
 
@@ -39,6 +41,7 @@ import dji.common.error.DJIError;
 import dji.common.error.DJISDKError;
 import dji.common.useraccount.UserAccountState;
 import dji.common.util.CommonCallbacks;
+import dji.midware.data.model.P3.DataRTKGetRtkCommonSync;
 import dji.sdk.base.BaseComponent;
 import dji.sdk.base.BaseProduct;
 import dji.sdk.battery.Battery;
@@ -267,6 +270,20 @@ public class MainActivity extends AppCompatActivity {
                     updateStatus();
                 } else if(message.equals("Battery")) {
                     updateBattery();
+                } else if(message.equals("Gimbal")) {
+                    GimbaProxy.getInstance().moving(10,0);
+                } else if(message.equals("Wakeup")) {
+                    MavlinkHub.getInstance().wakeup();
+                } else if (message.equals("SET_IMAGE")){
+                    CameraProxy.getInstance().setMode(CAMERA_MODE.CAMERA_MODE_IMAGE);
+                } else if(message.equals("SET_VIDEO")) {
+                    CameraProxy.getInstance().setMode(CAMERA_MODE.CAMERA_MODE_VIDEO);
+                } else if(message.equals("TAKE_PHOTO")) {
+                    CameraProxy.getInstance().takePhoto();
+                } else if(message.equals("START_VIDEO")) {
+                    CameraProxy.getInstance().startRecord();
+                } else if(message.equals("STOP_VIDEO")) {
+                    CameraProxy.getInstance().stopRecord();
                 }
             }
         }

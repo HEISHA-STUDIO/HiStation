@@ -13,7 +13,7 @@ class RemoteControllerProxy {
     private BatteryState.Callback callback = new BatteryState.Callback() {
         @Override
         public void onUpdate(BatteryState batteryState) {
-            HSCloudBridge.getInstance().sendDebug("RC Battery: " + batteryState.getRemainingChargeInPercent());
+            //HSCloudBridge.getInstance().sendDebug("RC Battery: " + batteryState.getRemainingChargeInPercent());
         }
     };
     boolean isCallbackSetted = false;

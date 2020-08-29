@@ -36,8 +36,10 @@ class MavlinkHub {
                     sendHeartbeat();
                 } catch (Exception e) {
                     e.printStackTrace();
-                    HSCloudBridge.getInstance().sendDebug(e.getMessage());
+                    MApplication.LOG(e.getMessage());
                 }
+
+                //MApplication.LOG("Heartbeat Thread");
             }
         }
     };
@@ -130,5 +132,16 @@ class MavlinkHub {
         msg.system_status += 1*16;
 
         sendMavlinkPacket(msg.pack());
+    }
+
+    public void wakeup() {
+        if(threadHB != null) {
+            HSCloudBridge.getInstance().sendDebug("HB Thread: " + threadHB.isAlive());
+            if(!threadHB.isAlive())
+                threadHB.start();
+        } else {
+            threadHB = new Thread(heartbeat);
+            threadHB.start();
+        }
     }
 }
