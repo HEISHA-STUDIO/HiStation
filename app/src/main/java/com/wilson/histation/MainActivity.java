@@ -5,19 +5,17 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.graphics.Camera;
+import android.graphics.ImageFormat;
+import android.hardware.Camera;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkRequest;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 
 import com.MAVLink.enums.CAMERA_MODE;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.vividsolutions.jts.noding.snapround.MCIndexPointSnapper;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -27,27 +25,19 @@ import androidx.core.content.ContextCompat;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import dji.common.battery.BatteryState;
-import dji.common.error.DJIError;
-import dji.common.error.DJISDKError;
-import dji.common.useraccount.UserAccountState;
-import dji.common.util.CommonCallbacks;
-import dji.midware.data.model.P3.DataRTKGetRtkCommonSync;
-import dji.sdk.base.BaseComponent;
-import dji.sdk.base.BaseProduct;
 import dji.sdk.battery.Battery;
-import dji.sdk.sdkmanager.DJISDKInitEvent;
-import dji.sdk.sdkmanager.DJISDKManager;
-import dji.sdk.useraccount.UserAccountManager;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -65,32 +55,62 @@ public class MainActivity extends AppCompatActivity {
             Manifest.permission.BLUETOOTH_ADMIN,
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.CAMERA,
     };
     private List<String> missingPermission = new ArrayList<>();
-    private AtomicBoolean isRegistrationInProgress = new AtomicBoolean(false);
     private static final int REQUEST_PERMISSION_CODE = 12345;
+
+    Camera camera;
+    SurfaceHolder previewHolder;
+    byte[] previewBuffer;
+    protected SurfaceHolder.Callback surfaceHolderCallback = new SurfaceHolder.Callback() {
+        @Override
+        public void surfaceCreated(SurfaceHolder holder) {
+            startCamera();
+        }
+
+        @Override
+        public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+        }
+
+        @Override
+        public void surfaceDestroyed(SurfaceHolder holder) {
+            stopCamera();
+        }
+    };
+    protected Camera.PreviewCallback previewCallback = new Camera.PreviewCallback() {
+        @Override
+        public void onPreviewFrame(byte[] data, Camera camera) {
+            camera.addCallbackBuffer(previewBuffer);
+
+            //HSVideoFeeder.getInstance().T3Encode(data);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
+        toolbar.setTitle("HiStation (V"+BuildConfig.VERSION_NAME+")");
+        toolbar.setLogo(R.mipmap.ic_launcher);
         setSupportActionBar(toolbar);
 
         checkAndRequestPermissions();
+
+        initUI();
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                /*Intent intent = getPackageManager()
+                Intent intent = getPackageManager()
                         .getLaunchIntentForPackage(getApplication().getPackageName());
                 PendingIntent restartIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, 0);
                 AlarmManager mgr = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
                 mgr.set(AlarmManager.RTC, System.currentTimeMillis() + 1000, restartIntent); // 1秒钟后重启应用
-                System.exit(0);*/
-
-                MediaFileManager.getInstance().handleFileListRequest();
+                System.exit(0);
             }
         });
 
@@ -106,6 +126,49 @@ public class MainActivity extends AppCompatActivity {
         });
 
         //HSCloudBridge.getInstance().connect();
+    }
+
+    private void initUI() {
+        SurfaceView surfaceView = (SurfaceView)findViewById(R.id.SurfaceViewPlay);
+        previewHolder = surfaceView.getHolder();
+        previewHolder.addCallback(surfaceHolderCallback);
+    }
+
+    private void startCamera() {
+        int cam_width = 640;
+        int cam_height = 480;
+        previewHolder.setFixedSize(cam_width, cam_height);
+
+        int stride = (int)Math.ceil(cam_width/16.0f) * 16;
+        int cStride = (int)Math.ceil(cam_width/32.0f) * 16;
+        final int frameSize = stride * cam_height;
+        final int qFrameSize = cStride * cam_height / 2;
+        previewBuffer = new byte[frameSize + qFrameSize * 2];
+
+        try {
+            camera = Camera.open(0);
+            camera.setPreviewDisplay(previewHolder);
+            Camera.Parameters params = camera.getParameters();
+            params.setPictureSize(cam_width, cam_height);
+            params.setPreviewFormat(ImageFormat.YV12);
+            camera.setParameters(params);
+            camera.addCallbackBuffer(previewBuffer);
+            camera.setPreviewCallbackWithBuffer(previewCallback);
+            camera.startPreview();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void stopCamera() {
+        if(camera != null) {
+            camera.setPreviewCallback(null);
+            camera.stopPreview();
+            camera.release();
+            camera = null;
+        }
     }
 
     @Override
@@ -175,58 +238,6 @@ public class MainActivity extends AppCompatActivity {
             showToast("Reboot needed");
         } else {
             //showToast("Missing permissions!!!");
-        }
-    }
-
-    private void startSDKRegistration() {
-        if (isRegistrationInProgress.compareAndSet(false, true)) {
-            AsyncTask.execute(new Runnable() {
-                @Override
-                public void run() {
-                    showToast("registering, pls wait...");
-                    DJISDKManager.getInstance().registerApp(MainActivity.this.getApplicationContext(), new DJISDKManager.SDKManagerCallback() {
-                        @Override
-                        public void onRegister(DJIError djiError) {
-                            if (djiError == DJISDKError.REGISTRATION_SUCCESS) {
-                                showToast("Register Success");
-                                DJISDKManager.getInstance().startConnectionToProduct();
-                            } else {
-                                showToast("Register sdk fails, please check the bundle id and network connection!");
-                            }
-                        }
-
-                        @Override
-                        public void onProductDisconnect() {
-
-                        }
-
-                        @Override
-                        public void onProductConnect(BaseProduct baseProduct) {
-
-                        }
-
-                        @Override
-                        public void onProductChanged(BaseProduct baseProduct) {
-
-                        }
-
-                        @Override
-                        public void onComponentChange(BaseProduct.ComponentKey componentKey, BaseComponent baseComponent, BaseComponent baseComponent1) {
-
-                        }
-
-                        @Override
-                        public void onInitProcess(DJISDKInitEvent djisdkInitEvent, int i) {
-
-                        }
-
-                        @Override
-                        public void onDatabaseDownloadProgress(long l, long l1) {
-
-                        }
-                    });
-                }
-            });
         }
     }
 
