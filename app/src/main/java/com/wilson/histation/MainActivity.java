@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
+import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -15,6 +16,7 @@ import android.os.Build;
 import android.os.Bundle;
 
 import com.MAVLink.enums.CAMERA_MODE;
+import com.MAVLink.enums.VIDEO_STREAMING_SOURCE;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import androidx.annotation.NonNull;
@@ -28,6 +30,7 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.TextureView;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -38,6 +41,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import dji.sdk.battery.Battery;
+import dji.sdk.codec.DJICodecManager;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -83,10 +87,13 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onPreviewFrame(byte[] data, Camera camera) {
             camera.addCallbackBuffer(previewBuffer);
-
-            //HSVideoFeeder.getInstance().T3Encode(data);
+            //MApplication.LOG("T3: " + data.length);
+            HSVideoFeeder.getInstance().T3Encode(data);
         }
     };
+
+    protected TextureView mVideoSurface = null;
+    protected DJICodecManager djiCodecManager = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,6 +139,32 @@ public class MainActivity extends AppCompatActivity {
         SurfaceView surfaceView = (SurfaceView)findViewById(R.id.SurfaceViewPlay);
         previewHolder = surfaceView.getHolder();
         previewHolder.addCallback(surfaceHolderCallback);
+
+        mVideoSurface = (TextureView)findViewById(R.id.video_previewer_surface);
+
+        mVideoSurface.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
+            @Override
+            public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+                if(djiCodecManager == null) {
+                    djiCodecManager = new DJICodecManager(MainActivity.this, surface, width, height);
+                }
+            }
+
+            @Override
+            public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+
+            }
+
+            @Override
+            public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+                return false;
+            }
+
+            @Override
+            public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+
+            }
+        });
     }
 
     private void startCamera() {
@@ -295,6 +328,10 @@ public class MainActivity extends AppCompatActivity {
                     CameraProxy.getInstance().startRecord();
                 } else if(message.equals("STOP_VIDEO")) {
                     CameraProxy.getInstance().stopRecord();
+                } else if(message.equals("T3")) {
+                    HSVideoFeeder.getInstance().videoSource = VIDEO_STREAMING_SOURCE.VIDEO_STREAMING_T3_CAMERA;
+                } else if(message.equals("DRONE")) {
+                    HSVideoFeeder.getInstance().videoSource = VIDEO_STREAMING_SOURCE.VIDEO_STREAMING_DRONE_CAMERA;
                 }
             }
         }

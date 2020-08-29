@@ -27,7 +27,6 @@ class HSCloudBridge {
 
         @Override
         public void receiveMessageSuccess(String s, byte[] bytes) {
-            //MApplication.LOG(s);
             if(s.equals(device.getTopic() + "-2")) {
                 if(mavLinkListener != null) {
                     mavLinkListener.onMessage(bytes);
@@ -83,8 +82,10 @@ class HSCloudBridge {
     }
 
     public void publicTopic(String topic, byte[] data) {
-        if(mqttManager.isConnected()) {
-            mqttManager.publish(topic, data, false, 0);
+        synchronized (mqttManager) {
+            if (mqttManager.isConnected()) {
+                mqttManager.publish(topic, data, false, 0);
+            }
         }
     }
 

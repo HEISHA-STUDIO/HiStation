@@ -1,13 +1,16 @@
 package com.wilson.histation;
 
 import com.MAVLink.enums.CAMERA_MODE;
+import com.MAVLink.enums.VIDEO_STREAMING_SOURCE;
 import com.vividsolutions.jts.noding.snapround.MCIndexPointSnapper;
 
 import dji.common.camera.SettingsDefinitions;
 import dji.common.error.DJIError;
 import dji.common.util.CommonCallbacks;
 import dji.sdk.camera.Camera;
+import dji.sdk.camera.VideoFeeder;
 import dji.sdk.remotecontroller.H;
+import dji.sdk.remotecontroller.V;
 
 class CameraProxy {
     private static final CameraProxy ourInstance = new CameraProxy();
@@ -17,6 +20,31 @@ class CameraProxy {
     }
 
     private CameraProxy() {
+    }
+
+    private VideoFeeder.VideoFeed videoFeed = null;
+    private VideoFeeder.VideoDataListener videoDataListener = new VideoFeeder.VideoDataListener() {
+        @Override
+        public void onReceive(byte[] bytes, int i) {
+            //MQTTService.getInstance().publishTopic(MQTTService.TOPIC_LOG, ("DJI: " + i).getBytes());
+            //publishMQTTTopic(bytes, i);
+            if(HSVideoFeeder.getInstance().videoSource == VIDEO_STREAMING_SOURCE.VIDEO_STREAMING_DRONE_CAMERA) {
+                byte[] buf = new byte[i];
+                System.arraycopy(bytes,0,buf,0,i);
+                HSVideoFeeder.getInstance().feedVideo(buf);
+            }
+        }
+    };
+
+    public void setVideoDataListener(Camera camera) {
+        if(videoFeed == null) {
+            videoFeed = VideoFeeder.getInstance().provideTranscodedVideoFeed();
+            //videoFeed = VideoFeeder.getInstance().getPrimaryVideoFeed();
+
+            if(videoFeed != null) {
+                videoFeed.addVideoDataListener(videoDataListener);
+            }
+        }
     }
 
     public void setMode(int mode) {

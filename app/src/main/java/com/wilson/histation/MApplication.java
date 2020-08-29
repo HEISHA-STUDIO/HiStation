@@ -115,6 +115,7 @@ public class MApplication extends Application {
                                 }
                                 if(componentKey.equals(CAMERA)) {
                                     HSCloudBridge.getInstance().sendDebug("Camera online");
+                                    CameraProxy.getInstance().setVideoDataListener((Camera)baseComponent1);
                                     //baseComponent1.setComponentListener((BaseComponent.ComponentListener)camera);
                                 }
                                 if(componentKey.equals(FLIGHT_CONTROLLER)) {
