@@ -59,7 +59,6 @@ public class MApplication extends Application {
                             if (djiError == DJISDKError.REGISTRATION_SUCCESS) {
                                 showToast("Register Success");
                                 DJISDKManager.getInstance().startConnectionToProduct();
-                                MavlinkHub.getInstance();
                             } else {
                                 showToast("Register sdk fails, please check the bundle id and network connection!");
                             }

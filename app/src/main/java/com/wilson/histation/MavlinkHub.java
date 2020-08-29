@@ -2,6 +2,7 @@ package com.wilson.histation;
 
 import com.MAVLink.DLink.msg_heartbeat;
 import com.MAVLink.MAVLinkPacket;
+import com.MAVLink.Parser;
 import com.MAVLink.enums.MAV_AUTOPILOT;
 import com.MAVLink.enums.MAV_MODE_FLAG;
 import com.MAVLink.enums.MAV_TYPE;
@@ -14,6 +15,8 @@ class MavlinkHub {
     }
 
     private static int mavlinkIndex = 0;
+    private MAVLinkPacket mavLinkPacket;
+    private Parser mavlinkParser = new Parser();
 
     private Runnable heartbeat = new Runnable() {
         @Override
@@ -31,6 +34,19 @@ class MavlinkHub {
     };
     private Thread threadHB = null;
 
+    HSCloudBridge.MavLinkListener mavLinkListener = new HSCloudBridge.MavLinkListener() {
+        @Override
+        public void onMessage(byte[] data) {
+            for(int i=0; i<data.length; i++) {
+                int ch = 0xFF & data[i];
+
+                if ((mavLinkPacket = mavlinkParser.mavlink_parse_char(ch)) != null) {
+                    mavlink_message_handle(mavLinkPacket);
+                }
+            }
+        }
+    };
+
     private MavlinkHub() {
         if(threadHB == null) {
             threadHB = new Thread(heartbeat);
@@ -45,6 +61,10 @@ class MavlinkHub {
             //MApplication.LOG(HSCloudBridge.getInstance().getTopic());
             HSCloudBridge.getInstance().publicTopic(HSCloudBridge.getInstance().getTopic() + "-1", packet.encodePacket());
         }
+    }
+
+    private void mavlink_message_handle(MAVLinkPacket packet) {
+        //MApplication.LOG("MSG: " + packet.msgid);
     }
 
     private void sendHeartbeat() {

@@ -89,6 +89,8 @@ public class MainActivity extends AppCompatActivity {
                 super.onAvailable(network);
 
                 HSCloudBridge.getInstance().connect();
+                HSCloudBridge.getInstance().setTestListener(testListener);
+                HSCloudBridge.getInstance().setMavLinkListener(MavlinkHub.getInstance().mavLinkListener);
             }
         });
 
@@ -228,4 +230,11 @@ public class MainActivity extends AppCompatActivity {
         });
 
     }
+
+    private HSCloudBridge.TestListener testListener = new HSCloudBridge.TestListener() {
+        @Override
+        public void onMessage(String msg) {
+            MApplication.LOG(msg);
+        }
+    };
 }

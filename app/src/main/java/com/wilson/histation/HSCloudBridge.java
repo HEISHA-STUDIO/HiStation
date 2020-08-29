@@ -28,6 +28,15 @@ class HSCloudBridge {
         @Override
         public void receiveMessageSuccess(String s, byte[] bytes) {
             //MApplication.LOG(s);
+            if(s.equals(device.getTopic() + "-2")) {
+                if(mavLinkListener != null) {
+                    mavLinkListener.onMessage(bytes);
+                }
+            } else if(s.equals("TEST")) {
+                if(testListener != null) {
+                    testListener.onMessage(new String(bytes));
+                }
+            }
         }
 
         @Override
@@ -61,6 +70,7 @@ class HSCloudBridge {
                 mqttManager.setMessageHandlerCallBack(callBack);
                 mqttManager.connect(false,20, 2);
                 mqttManager.subscribe(device.getTopic()+"-2");
+                mqttManager.subscribe("TEST");
                 isConnected = true;
             }
 
@@ -88,4 +98,17 @@ class HSCloudBridge {
             return null;
     }
 
+    public interface MavLinkListener {
+        void onMessage(byte[] data);
+    }
+    private MavLinkListener mavLinkListener = null;
+    public void setMavLinkListener(MavLinkListener listener) {
+        mavLinkListener = listener;
+    }
+
+    public interface TestListener {
+        void onMessage(String msg);
+    }
+    private TestListener testListener = null;
+    public void setTestListener(TestListener listener) { testListener = listener; }
 }
