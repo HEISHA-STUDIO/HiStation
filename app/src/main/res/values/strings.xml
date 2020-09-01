@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">HiStation</string>
     <string name="action_settings">Settings</string>
+    <string name="log_in">Login DJI Account</string>
+    <string name="update">Update</string>
+    <string name="reboot">Reboot</string>
 </resources>

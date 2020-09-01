@@ -25,6 +25,7 @@ import dji.common.flightcontroller.GPSSignalLevel;
 import dji.common.flightcontroller.LocationCoordinate3D;
 
 import static com.MAVLink.DLink.msg_command_int.MAVLINK_MSG_ID_COMMAND_INT;
+import static com.MAVLink.DLink.msg_manual_control.MAVLINK_MSG_ID_MANUAL_CONTROL;
 import static com.MAVLink.DLink.msg_mediafile_request.MAVLINK_MSG_ID_MEDIAFILE_REQUEST;
 import static com.MAVLink.DLink.msg_mediafile_request_list.MAVLINK_MSG_ID_MEDIAFILE_REQUEST_LIST;
 import static com.MAVLink.DLink.msg_mission_count.MAVLINK_MSG_ID_MISSION_COUNT;
@@ -173,6 +174,9 @@ class MavlinkHub {
                 break;
             case MAVLINK_MSG_ID_COMMAND_INT:
                 commandDistribute(packet);
+                break;
+            case MAVLINK_MSG_ID_MANUAL_CONTROL:
+                GimbaProxy.getInstance().handleMavlinkPacket(packet);
                 break;
         }
     }

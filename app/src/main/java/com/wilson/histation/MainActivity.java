@@ -3,6 +3,7 @@ package com.wilson.histation;
 import android.Manifest;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -18,6 +19,11 @@ import android.os.Bundle;
 import com.MAVLink.enums.CAMERA_MODE;
 import com.MAVLink.enums.VIDEO_STREAMING_SOURCE;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.pgyersdk.crash.PgyCrashManager;
+import com.pgyersdk.update.DownloadFileListener;
+import com.pgyersdk.update.PgyUpdateManager;
+import com.pgyersdk.update.UpdateManagerListener;
+import com.pgyersdk.update.javabean.AppBean;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -34,17 +40,23 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import dji.common.error.DJIError;
+import dji.common.realname.AircraftBindingState;
+import dji.common.realname.AppActivationState;
 import dji.common.useraccount.UserAccountState;
 import dji.common.util.CommonCallbacks;
 import dji.sdk.battery.Battery;
 import dji.sdk.codec.DJICodecManager;
+import dji.sdk.realname.AppActivationManager;
+import dji.sdk.sdkmanager.DJISDKManager;
 import dji.sdk.useraccount.UserAccountManager;
 
 public class MainActivity extends AppCompatActivity {
@@ -99,6 +111,17 @@ public class MainActivity extends AppCompatActivity {
     protected TextureView mVideoSurface = null;
     protected DJICodecManager djiCodecManager = null;
 
+    private AppActivationManager appActivationManager;
+    private AppActivationState.AppActivationStateListener activationStateListener;
+    private AircraftBindingState.AircraftBindingStateListener bindingStateListener;
+    private String  activationState = "";
+    private String  boundState = "";
+    private String  new_version = "Latest";
+
+    private AppBean _appBean = null;
+    final int MAX_PROGRESS = 100;
+    ProgressDialog progressDialog = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -112,18 +135,18 @@ public class MainActivity extends AppCompatActivity {
 
         initUI();
 
+        initActivateManager();
+
+        initUpdate();
+
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = getPackageManager()
-                        .getLaunchIntentForPackage(getApplication().getPackageName());
-                PendingIntent restartIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, 0);
-                AlarmManager mgr = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
-                mgr.set(AlarmManager.RTC, System.currentTimeMillis() + 1000, restartIntent); // 1秒钟后重启应用
-                System.exit(0);
+
             }
         });
+        fab.setVisibility(View.INVISIBLE);
 
         ConnectivityManager connectivityManager = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
         connectivityManager.requestNetwork(new NetworkRequest.Builder().build(), new ConnectivityManager.NetworkCallback() {
@@ -139,6 +162,18 @@ public class MainActivity extends AppCompatActivity {
         });
 
         //HSCloudBridge.getInstance().connect();
+    }
+
+    @Override
+    public void onResume() {
+        setUpListener();
+        super.onResume();
+    }
+
+    @Override
+    protected void onDestroy() {
+        tearDownListener();
+        super.onDestroy();
     }
 
     private void initUI() {
@@ -171,6 +206,8 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+
+        initCrashHandle();
     }
 
     private void startCamera() {
@@ -227,6 +264,31 @@ public class MainActivity extends AppCompatActivity {
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
+        } else if(id == R.id.action_login) {
+            login();
+            return true;
+        } else if(id == R.id.action_update) {
+            if(_appBean != null) {
+                PgyUpdateManager.downLoadApk(_appBean.getDownloadURL());
+
+                if(progressDialog == null) {
+                    progressDialog = new ProgressDialog(this);
+                }
+                progressDialog.setProgress(0);
+                progressDialog.setTitle("Downloading...");
+                progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                progressDialog.setMax(MAX_PROGRESS);
+                progressDialog.show();
+            } else {
+                showToast("Latest");
+            }
+        } else if(id == R.id.action_reboot) {
+            Intent intent = getPackageManager()
+                    .getLaunchIntentForPackage(getApplication().getPackageName());
+            PendingIntent restartIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, 0);
+            AlarmManager mgr = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
+            mgr.set(AlarmManager.RTC, System.currentTimeMillis() + 1000, restartIntent); // 1秒钟后重启应用
+            System.exit(0);
         }
 
         return super.onOptionsItemSelected(item);
@@ -372,100 +434,159 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private void updateStatus() {
-        if(MApplication.getProductInstance() == null) {
-            HSCloudBridge.getInstance().sendDebug("NONE Product");
-        } else {
-            HSCloudBridge.getInstance().sendDebug("HAS Product");
-        }
-
-        if(MApplication.getRemoteControllerInstance() == null) {
-            HSCloudBridge.getInstance().sendDebug("NONE RC");
-        } else {
-            HSCloudBridge.getInstance().sendDebug("HAS RC");
-            if(MApplication.getRemoteControllerInstance().isConnected()) {
-                HSCloudBridge.getInstance().sendDebug("RC connected");
-            } else {
-                HSCloudBridge.getInstance().sendDebug("RC disconnected");
-            }
-        }
-
-        if(MApplication.getCameraInstance() == null) {
-            HSCloudBridge.getInstance().sendDebug("NONE Camera");
-        } else {
-            HSCloudBridge.getInstance().sendDebug("HAS Camera");
-            if(MApplication.getCameraInstance().isConnected()) {
-                HSCloudBridge.getInstance().sendDebug("Camere connected");
-            } else {
-                HSCloudBridge.getInstance().sendDebug("Camera disconnected");
-            }
-        }
-
-        if(MApplication.getFlightControllerInstance() == null) {
-            HSCloudBridge.getInstance().sendDebug("NONE FC");
-        } else {
-            HSCloudBridge.getInstance().sendDebug("HAS FC");
-            if(MApplication.getFlightControllerInstance().isConnected()) {
-                HSCloudBridge.getInstance().sendDebug("FC Connected");
-            } else {
-                HSCloudBridge.getInstance().sendDebug("FC Disconncted");
-            }
-        }
-
-        if(MApplication.getBatteryInstance() == null) {
-            HSCloudBridge.getInstance().sendDebug("NONE Battery");
-        } else {
-            HSCloudBridge.getInstance().sendDebug("HAS Battery");
-            if(MApplication.getBatteryInstance().isConnected()) {
-                HSCloudBridge.getInstance().sendDebug("Battery conncted");
-            } else {
-                HSCloudBridge.getInstance().sendDebug("Battery disconnted");
-            }
-        }
-
-        if(MApplication.getGimbalInstance() == null) {
-            HSCloudBridge.getInstance().sendDebug("NONE Gimbal");
-        } else {
-            HSCloudBridge.getInstance().sendDebug("HAS Gimbal");
-            if(MApplication.getGimbalInstance().isConnected()) {
-                HSCloudBridge.getInstance().sendDebug("Gimbal connected");
-            } else {
-                HSCloudBridge.getInstance().sendDebug("Gimbal disconnected");
-            }
-        }
-
-        if(MApplication.getAirLinkInstance() == null) {
-            HSCloudBridge.getInstance().sendDebug("NONE Airlink");
-        } else {
-            HSCloudBridge.getInstance().sendDebug("HAS Airlink");
-            if(MApplication.getAirLinkInstance().isConnected()) {
-                HSCloudBridge.getInstance().sendDebug("Airlink connected");
-            } else {
-                HSCloudBridge.getInstance().sendDebug("Airlink disconnected");
-            }
-        }
-    }
-
-    private void updateBattery() {
-        Battery battery = MApplication.getBatteryInstance();
-
-        if(battery != null) {
-            if(battery.isConnected()) {
-
-            }
-        }
-    }
-
     private void login() {
         UserAccountManager.getInstance().logIntoDJIUserAccount(this,
                 new CommonCallbacks.CompletionCallbackWith<UserAccountState>() {
                     @Override
                     public void onSuccess(final UserAccountState userAccountState) {
-                        //showToast("Login Success");
+                        showToast("Login Success");
                     }
                     @Override
                     public void onFailure(DJIError error) {
+                        if(error != null) {
+                            showToast(error.getDescription());
+                        }
                     }
                 });
+    }
+
+    private void initCrashHandle() {
+        PgyCrashManager.register();
+        PgyCrashManager.setIsIgnoreDefaultHander(true);
+    }
+
+    private void initActivateManager() {
+        setUpListener();
+
+        appActivationManager = DJISDKManager.getInstance().getAppActivationManager();
+
+        if (appActivationManager != null) {
+            appActivationManager.addAppActivationStateListener(activationStateListener);
+            appActivationManager.addAircraftBindingStateListener(bindingStateListener);
+            this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    activationState = "" + appActivationManager.getAppActivationState();
+                    boundState = "" + appActivationManager.getAircraftBindingState();
+                    updateTitle();
+                }
+            });
+        }
+    }
+
+    private void setUpListener() {
+        // Example of Listener
+        activationStateListener = new AppActivationState.AppActivationStateListener() {
+            @Override
+            public void onUpdate(final AppActivationState appActivationState) {
+                MainActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        activationState = "" + activationState;
+                        updateTitle();
+                    }
+                });
+            }
+        };
+
+        bindingStateListener = new AircraftBindingState.AircraftBindingStateListener() {
+
+            @Override
+            public void onUpdate(final AircraftBindingState bindingState) {
+                MainActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        boundState = "" + bindingState;
+                        updateTitle();
+                    }
+                });
+            }
+        };
+    }
+
+    private void tearDownListener() {
+        if (activationStateListener != null) {
+            if(appActivationManager != null)
+                appActivationManager.removeAppActivationStateListener(activationStateListener);
+            this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    activationState = "";
+                    updateTitle();
+                }
+            });
+        }
+        if (bindingStateListener !=null) {
+            if(appActivationManager != null)
+                appActivationManager.removeAircraftBindingStateListener(bindingStateListener);
+            this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    boundState = "";
+                    updateTitle();
+                }
+            });
+        }
+    }
+
+    private void updateTitle() {
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        String title = "HiStation ("+BuildConfig.VERSION_NAME + ") - " + new_version;
+        if(!boundState.equals("")) {
+            title += " - " + boundState;
+        }
+        if(!activationState.equals("")) {
+            title += " - " + activationState;
+        }
+        toolbar.setTitle(title);
+    }
+
+    private void initUpdate() {
+        new PgyUpdateManager.Builder()
+                .setForced(true)
+                .setUserCanRetry(false)
+                .setDeleteHistroyApk(true)
+                .setUpdateManagerListener(new UpdateManagerListener() {
+                    @Override
+                    public void onNoUpdateAvailable() {
+                        new_version = "Latest";
+                        updateTitle();
+                    }
+
+                    @Override
+                    public void onUpdateAvailable(AppBean appBean) {
+                        _appBean = appBean;
+                        new_version = appBean.getVersionName() + " Available";
+                        updateTitle();
+                    }
+
+                    @Override
+                    public void checkUpdateFailed(Exception e) {
+                        showToast("Check update failed");
+                    }
+                }).setDownloadFileListener(new DownloadFileListener() {
+            @Override
+            public void downloadFailed() {
+                showToast("Download failed");
+                if(progressDialog != null) {
+                    progressDialog.hide();
+                    progressDialog = null;
+                }
+            }
+
+            @Override
+            public void downloadSuccessful(File file) {
+                if(progressDialog != null) {
+                    progressDialog.hide();
+                    progressDialog = null;
+                }
+                PgyUpdateManager.installApk(file);
+            }
+
+            @Override
+            public void onProgressUpdate(Integer... args) {
+                progressDialog.setProgress(Integer.parseInt(String.valueOf(args[0])));
+            }
+        }).register();
     }
 }

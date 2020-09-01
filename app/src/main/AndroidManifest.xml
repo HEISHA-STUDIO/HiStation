@@ -40,6 +40,11 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
+        <meta-data
+            android:name="PGYER_APPID"
+            android:value="c6387466ed58715c2f9ce0865e4958ae" >
+        </meta-data>
+
         <!-- DJI SDK -->
         <uses-library android:name="com.android.future.usb.accessory" />
         <meta-data
