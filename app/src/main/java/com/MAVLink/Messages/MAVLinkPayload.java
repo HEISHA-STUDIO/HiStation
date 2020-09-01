@@ -21,7 +21,7 @@ public class MAVLinkPayload {
 
     private static final long UNSIGNED_LONG_MIN_VALUE = 0;
 
-    public static final int MAX_PAYLOAD_SIZE = 255;
+    public static final int MAX_PAYLOAD_SIZE = 2048;
     
     public final ByteBuffer payload;
     public int index;

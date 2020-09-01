@@ -1,16 +1,20 @@
 package com.wilson.histation;
 
+import com.MAVLink.DLink.msg_command_int;
 import com.MAVLink.enums.CAMERA_MODE;
+import com.MAVLink.enums.MAV_RESULT;
 import com.MAVLink.enums.VIDEO_STREAMING_SOURCE;
-import com.vividsolutions.jts.noding.snapround.MCIndexPointSnapper;
 
 import dji.common.camera.SettingsDefinitions;
 import dji.common.error.DJIError;
 import dji.common.util.CommonCallbacks;
 import dji.sdk.camera.Camera;
 import dji.sdk.camera.VideoFeeder;
-import dji.sdk.remotecontroller.H;
-import dji.sdk.remotecontroller.V;
+
+import static com.MAVLink.enums.MAV_CMD.MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE;
+import static com.MAVLink.enums.MAV_CMD.MAV_CMD_SET_CAMERA_MODE;
+import static com.MAVLink.enums.MAV_CMD.MAV_CMD_VIDEO_START_CAPTURE;
+import static com.MAVLink.enums.MAV_CMD.MAV_CMD_VIDEO_STOP_CAPTURE;
 
 class CameraProxy {
     private static final CameraProxy ourInstance = new CameraProxy();
@@ -26,8 +30,6 @@ class CameraProxy {
     private VideoFeeder.VideoDataListener videoDataListener = new VideoFeeder.VideoDataListener() {
         @Override
         public void onReceive(byte[] bytes, int i) {
-            //MQTTService.getInstance().publishTopic(MQTTService.TOPIC_LOG, ("DJI: " + i).getBytes());
-            //publishMQTTTopic(bytes, i);
             if(HSVideoFeeder.getInstance().videoSource == VIDEO_STREAMING_SOURCE.VIDEO_STREAMING_DRONE_CAMERA) {
                 byte[] buf = new byte[i];
                 System.arraycopy(bytes,0,buf,0,i);
@@ -39,7 +41,6 @@ class CameraProxy {
     public void setVideoDataListener(Camera camera) {
         if(videoFeed == null) {
             videoFeed = VideoFeeder.getInstance().provideTranscodedVideoFeed();
-            //videoFeed = VideoFeeder.getInstance().getPrimaryVideoFeed();
 
             if(videoFeed != null) {
                 videoFeed.addVideoDataListener(videoDataListener);
@@ -87,75 +88,149 @@ class CameraProxy {
         }
     }
 
-    public void takePhoto() {
+    public void handleCommand(msg_command_int msg) {
+        switch (msg.command) {
+            case MAV_CMD_SET_CAMERA_MODE:
+                handleSetMode(msg);
+                break;
+            case MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE:
+                handleTakePicture();
+                break;
+            case MAV_CMD_VIDEO_START_CAPTURE:
+                handleStartVideo();
+                break;
+            case MAV_CMD_VIDEO_STOP_CAPTURE:
+                handleStopVideo();
+                break;
+        }
+    }
+
+    private void handleSetMode(msg_command_int msg) {
         Camera camera = MApplication.getCameraInstance();
+
         if(camera == null) {
-            HSCloudBridge.getInstance().sendDebug("NONE Camera");
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_SET_CAMERA_MODE, (short) MAV_RESULT.MAV_RESULT_DENIED);
             return;
         }
 
         if(!camera.isConnected()) {
-            HSCloudBridge.getInstance().sendDebug("Camera disconnect");
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_SET_CAMERA_MODE, (short) MAV_RESULT.MAV_RESULT_DENIED);
             return;
         }
+
+        SettingsDefinitions.CameraMode mode;
+        if(msg.param2 == CAMERA_MODE.CAMERA_MODE_IMAGE) {
+            mode = SettingsDefinitions.CameraMode.SHOOT_PHOTO;
+        } else if(msg.param2 == CAMERA_MODE.CAMERA_MODE_VIDEO) {
+            mode = SettingsDefinitions.CameraMode.RECORD_VIDEO;
+        } else {
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_SET_CAMERA_MODE, (short) MAV_RESULT.MAV_RESULT_DENIED);
+            return;
+        }
+
+        MavlinkHub.getInstance().sendCommandAck(MAV_CMD_SET_CAMERA_MODE, (short) MAV_RESULT.MAV_RESULT_ACCEPTED);
+
+        camera.setMode(mode, new CommonCallbacks.CompletionCallback() {
+            @Override
+            public void onResult(DJIError djiError) {
+                if(djiError == null) {
+                    MavlinkHub.getInstance().sendCommandAck(MAV_CMD_SET_CAMERA_MODE, (short) MAV_RESULT.MAV_RESULT_SUCCESS);
+                } else {
+                    MavlinkHub.getInstance().sendCommandAck(MAV_CMD_SET_CAMERA_MODE, (short) MAV_RESULT.MAV_RESULT_FAILED);
+                    MavlinkHub.getInstance().sendText(djiError.getDescription());
+                }
+            }
+        });
+    }
+
+    private void handleTakePicture() {
+        Camera camera = MApplication.getCameraInstance();
+        if(camera == null) {
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE, (short)MAV_RESULT.MAV_RESULT_DENIED);
+            MavlinkHub.getInstance().sendText("No camera");
+            return;
+        }
+
+        if(!camera.isConnected()) {
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE, (short)MAV_RESULT.MAV_RESULT_DENIED);
+            MavlinkHub.getInstance().sendText("No camera");
+            return;
+        }
+
+        MavlinkHub.getInstance().sendCommandAck(MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE, (short)MAV_RESULT.MAV_RESULT_ACCEPTED);
 
         camera.startShootPhoto(new CommonCallbacks.CompletionCallback() {
             @Override
             public void onResult(DJIError djiError) {
                 if(djiError == null) {
-                    HSCloudBridge.getInstance().sendDebug("Take a photo");
+                    MavlinkHub.getInstance().sendCommandAck(MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE, (short)MAV_RESULT.MAV_RESULT_SUCCESS);
+                    MavlinkHub.getInstance().sendText("One photo taken");
                 } else {
-                    HSCloudBridge.getInstance().sendDebug(djiError.getDescription());
+                    MavlinkHub.getInstance().sendCommandAck(MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE, (short)MAV_RESULT.MAV_RESULT_FAILED);
+                    MavlinkHub.getInstance().sendText(djiError.getDescription());
                 }
             }
         });
     }
 
-    public void startRecord() {
+    private void handleStartVideo() {
         Camera camera = MApplication.getCameraInstance();
         if(camera == null) {
-            HSCloudBridge.getInstance().sendDebug("NONE Camera");
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_VIDEO_START_CAPTURE, (short)MAV_RESULT.MAV_RESULT_DENIED);
+            MavlinkHub.getInstance().sendText("No camera");
             return;
         }
 
         if(!camera.isConnected()) {
-            HSCloudBridge.getInstance().sendDebug("Camera disconnect");
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_VIDEO_START_CAPTURE, (short)MAV_RESULT.MAV_RESULT_DENIED);
+            MavlinkHub.getInstance().sendText("No camera");
             return;
         }
+
+        MavlinkHub.getInstance().sendCommandAck(MAV_CMD_VIDEO_START_CAPTURE, (short)MAV_RESULT.MAV_RESULT_ACCEPTED);
 
         camera.startRecordVideo(new CommonCallbacks.CompletionCallback() {
             @Override
             public void onResult(DJIError djiError) {
                 if(djiError == null) {
-                    HSCloudBridge.getInstance().sendDebug("Start record");
+                    MavlinkHub.getInstance().sendCommandAck(MAV_CMD_VIDEO_START_CAPTURE, (short)MAV_RESULT.MAV_RESULT_SUCCESS);
+                    MavlinkHub.getInstance().sendText("Start record");
                 } else {
-                    HSCloudBridge.getInstance().sendDebug(djiError.getDescription());
+                    MavlinkHub.getInstance().sendCommandAck(MAV_CMD_VIDEO_START_CAPTURE, (short)MAV_RESULT.MAV_RESULT_FAILED);
+                    MavlinkHub.getInstance().sendText(djiError.getDescription());
                 }
             }
         });
     }
 
-    public void stopRecord() {
+    private void handleStopVideo() {
         Camera camera = MApplication.getCameraInstance();
         if(camera == null) {
-            HSCloudBridge.getInstance().sendDebug("NONE Camera");
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_VIDEO_STOP_CAPTURE, (short)MAV_RESULT.MAV_RESULT_DENIED);
+            MavlinkHub.getInstance().sendText("No camera");
             return;
         }
 
         if(!camera.isConnected()) {
-            HSCloudBridge.getInstance().sendDebug("Camera disconnect");
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_VIDEO_STOP_CAPTURE, (short)MAV_RESULT.MAV_RESULT_DENIED);
+            MavlinkHub.getInstance().sendText("No camera");
             return;
         }
+
+        MavlinkHub.getInstance().sendCommandAck(MAV_CMD_VIDEO_STOP_CAPTURE, (short)MAV_RESULT.MAV_RESULT_ACCEPTED);
 
         camera.stopRecordVideo(new CommonCallbacks.CompletionCallback() {
             @Override
             public void onResult(DJIError djiError) {
                 if(djiError == null) {
-                    HSCloudBridge.getInstance().sendDebug("Stop record");
+                    MavlinkHub.getInstance().sendCommandAck(MAV_CMD_VIDEO_STOP_CAPTURE, (short)MAV_RESULT.MAV_RESULT_SUCCESS);
+                    MavlinkHub.getInstance().sendText("Stop record");
                 } else {
-                    HSCloudBridge.getInstance().sendDebug(djiError.getDescription());
+                    MavlinkHub.getInstance().sendCommandAck(MAV_CMD_VIDEO_STOP_CAPTURE, (short)MAV_RESULT.MAV_RESULT_FAILED);
+                    MavlinkHub.getInstance().sendText(djiError.getDescription());
                 }
             }
         });
     }
+
 }

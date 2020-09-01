@@ -59,6 +59,7 @@ class HSCloudBridge {
 
         if(device == null) {
             device = new Device(DEVICE_NAME, DEVICE_KEY);
+            MApplication.LOG(DEVICE_NAME);
         }
 
         device.request(HS_SERVER, new RequestCallback() {

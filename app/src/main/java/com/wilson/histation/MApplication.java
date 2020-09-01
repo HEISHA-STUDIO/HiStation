@@ -44,6 +44,8 @@ public class MApplication extends Application {
     public static final String FLAG_CONNECTION_CHANGE = "dji_sdk_connection_change";
     private Handler mHandler;
     private static BaseProduct mProduct;
+    public static Application  app;
+    public static boolean commandBusy = false;
 
     @Override
     protected void attachBaseContext(Context base) {
@@ -88,10 +90,10 @@ public class MApplication extends Application {
                             notifyStatusChange();
                         }
 
-                        @Override
-                        public void onProductChanged(BaseProduct baseProduct) {
+                        //@Override
+                        //public void onProductChanged(BaseProduct baseProduct) {
 
-                        }
+                       // }
 
                         @Override
                         public void onComponentChange(BaseProduct.ComponentKey componentKey, BaseComponent baseComponent, BaseComponent baseComponent1) {
@@ -120,6 +122,7 @@ public class MApplication extends Application {
                                 }
                                 if(componentKey.equals(FLIGHT_CONTROLLER)) {
                                     HSCloudBridge.getInstance().sendDebug("FC online");
+                                    FlightControllerProxy.getInstance().setFlightControllerStatusCallback((FlightController)baseComponent1);
                                     //baseComponent1.setComponentListener((BaseComponent.ComponentListener)flightController);
                                 }
                             }
@@ -138,6 +141,8 @@ public class MApplication extends Application {
                 }
             });
         }
+
+        app = this;
     }
 
     public static synchronized BaseProduct getProductInstance() {

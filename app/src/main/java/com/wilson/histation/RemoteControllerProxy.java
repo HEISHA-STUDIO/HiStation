@@ -1,7 +1,7 @@
 package com.wilson.histation;
 
-import dji.common.remotecontroller.BatteryState;
 import dji.sdk.remotecontroller.RemoteController;
+import dji.common.remotecontroller.ChargeRemaining;
 
 class RemoteControllerProxy {
     private static final RemoteControllerProxy ourInstance = new RemoteControllerProxy();
@@ -10,10 +10,10 @@ class RemoteControllerProxy {
         return ourInstance;
     }
 
-    private BatteryState.Callback callback = new BatteryState.Callback() {
+    private ChargeRemaining.Callback callback = new ChargeRemaining.Callback() {
         @Override
-        public void onUpdate(BatteryState batteryState) {
-            //HSCloudBridge.getInstance().sendDebug("RC Battery: " + batteryState.getRemainingChargeInPercent());
+        public void onUpdate(ChargeRemaining chargeRemaining) {
+
         }
     };
     boolean isCallbackSetted = false;
@@ -34,5 +34,17 @@ class RemoteControllerProxy {
         } else {
             HSCloudBridge.getInstance().sendDebug("NONE RC");
         }
+    }
+
+    public boolean isLive() {
+        RemoteController remoteController = MApplication.getRemoteControllerInstance();
+
+        if(remoteController == null)
+            return false;
+
+        if(remoteController.isConnected())
+            return true;
+        else
+            return false;
     }
 }

@@ -1,8 +1,12 @@
 package com.wilson.histation;
 
+import com.MAVLink.DLink.msg_command_int;
+import com.MAVLink.enums.MAV_RESULT;
 import com.MAVLink.enums.VIDEO_STREAMING_SOURCE;
 
 import java.util.ArrayList;
+
+import static com.MAVLink.enums.MAV_CMD.MAV_CMD_VIDEO_STREAMING_REQUEST;
 
 class HSVideoFeeder {
     private static final HSVideoFeeder ourInstance = new HSVideoFeeder();
@@ -11,7 +15,7 @@ class HSVideoFeeder {
         return ourInstance;
     }
 
-    public int videoSource  = VIDEO_STREAMING_SOURCE.UNKNOWN;
+    public int videoSource  = VIDEO_STREAMING_SOURCE.VIDEO_STREAMING_T3_CAMERA;
     private AvcEncoder encoder;
     ArrayList<byte[]> encDataList = new ArrayList<byte[]>();
 
@@ -143,5 +147,19 @@ class HSVideoFeeder {
                 //HSCloudBridge.getInstance().publicTopic(HSCloudBridge.getInstance().getTopic(), "VIDEO".getBytes());
             }
         }
+    }
+
+    public void handleCommand(msg_command_int msg) {
+        switch (msg.command) {
+            case MAV_CMD_VIDEO_STREAMING_REQUEST:
+                handleStreamingRequest(msg);
+                break;
+        }
+    }
+
+    private void handleStreamingRequest(msg_command_int msg) {
+        MavlinkHub.getInstance().sendCommandAck(MAV_CMD_VIDEO_STREAMING_REQUEST, (short) MAV_RESULT.MAV_RESULT_ACCEPTED);
+        videoSource = (int)msg.param1;
+        MavlinkHub.getInstance().sendCommandAck(MAV_CMD_VIDEO_STREAMING_REQUEST, (short) MAV_RESULT.MAV_RESULT_SUCCESS);
     }
 }

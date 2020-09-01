@@ -40,8 +40,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import dji.common.error.DJIError;
+import dji.common.useraccount.UserAccountState;
+import dji.common.util.CommonCallbacks;
 import dji.sdk.battery.Battery;
 import dji.sdk.codec.DJICodecManager;
+import dji.sdk.useraccount.UserAccountManager;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -129,6 +133,8 @@ public class MainActivity extends AppCompatActivity {
                 HSCloudBridge.getInstance().connect();
                 HSCloudBridge.getInstance().setTestListener(testListener);
                 HSCloudBridge.getInstance().setMavLinkListener(MavlinkHub.getInstance().mavLinkListener);
+                MissionPlanner.getInstance();
+                ChargePad.getInstance();
             }
         });
 
@@ -310,28 +316,40 @@ public class MainActivity extends AppCompatActivity {
                     continue;
                 }
 
-                if(message.equals("Status")) {
-                    updateStatus();
-                } else if(message.equals("Battery")) {
-                    updateBattery();
-                } else if(message.equals("Gimbal")) {
+                if(message.equals("Gimbal")) {
                     GimbaProxy.getInstance().moving(10,0);
-                } else if(message.equals("Wakeup")) {
-                    MavlinkHub.getInstance().wakeup();
-                } else if (message.equals("SET_IMAGE")){
-                    CameraProxy.getInstance().setMode(CAMERA_MODE.CAMERA_MODE_IMAGE);
+                }else if (message.equals("SET_IMAGE")){
+                    LocalTester.getInstance().testSetPhotoMode();
                 } else if(message.equals("SET_VIDEO")) {
-                    CameraProxy.getInstance().setMode(CAMERA_MODE.CAMERA_MODE_VIDEO);
+                    LocalTester.getInstance().testSetVideoMode();
                 } else if(message.equals("TAKE_PHOTO")) {
-                    CameraProxy.getInstance().takePhoto();
+                    LocalTester.getInstance().testTakePhoto();
                 } else if(message.equals("START_VIDEO")) {
-                    CameraProxy.getInstance().startRecord();
+                    LocalTester.getInstance().testStartRecord();
                 } else if(message.equals("STOP_VIDEO")) {
-                    CameraProxy.getInstance().stopRecord();
+                    LocalTester.getInstance().testStopRecord();
                 } else if(message.equals("T3")) {
-                    HSVideoFeeder.getInstance().videoSource = VIDEO_STREAMING_SOURCE.VIDEO_STREAMING_T3_CAMERA;
+                    LocalTester.getInstance().testT3Streaming();
                 } else if(message.equals("DRONE")) {
-                    HSVideoFeeder.getInstance().videoSource = VIDEO_STREAMING_SOURCE.VIDEO_STREAMING_DRONE_CAMERA;
+                    LocalTester.getInstance().testDroneStreaming();
+                } else if(message.equals("LOGIN")) {
+                    login();
+                } else if(message.equals("LOCKED")) {
+                    ChargePad.getInstance().barStatus = ChargePad.BAR_STATUS_LOCKED;
+                } else if(message.equals("UNLOCKED")) {
+                    ChargePad.getInstance().barStatus = ChargePad.BAR_STATUS_UNLOCKED;
+                }else if(message.equals("SD")) {
+                    LocalTester.getInstance().testSetStorageSD();
+                } else if(message.equals("Internal")) {
+                    LocalTester.getInstance().testSetStorageInternal();
+                } else if(message.equals("SD_LIST")) {
+                    LocalTester.getInstance().testSDList();
+                } else if(message.equals("IN_LIST")) {
+                    LocalTester.getInstance().testInternalList();
+                } else if(message.equals("SD_INFO")) {
+                    LocalTester.getInstance().testSDMediaFileReqeust();
+                } else if(message.equals("IN_INFO")) {
+                    LocalTester.getInstance().testINMediaFileRequest();
                 }
             }
         }
@@ -436,5 +454,18 @@ public class MainActivity extends AppCompatActivity {
 
             }
         }
+    }
+
+    private void login() {
+        UserAccountManager.getInstance().logIntoDJIUserAccount(this,
+                new CommonCallbacks.CompletionCallbackWith<UserAccountState>() {
+                    @Override
+                    public void onSuccess(final UserAccountState userAccountState) {
+                        //showToast("Login Success");
+                    }
+                    @Override
+                    public void onFailure(DJIError error) {
+                    }
+                });
     }
 }
