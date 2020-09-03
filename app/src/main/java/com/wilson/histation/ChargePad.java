@@ -216,7 +216,7 @@ class ChargePad {
         data[4] = (byte)0x00;
         data[5] = (byte)0x00;
         data[6] = (byte)0x00;
-        data[7] = (byte)0x05;
+        data[7] = (byte)0x06;
 
         sendData(data);
     }
@@ -626,6 +626,8 @@ class ChargePad {
                             e.printStackTrace();
                         }
 
+                        FlightControllerProxy.getInstance().setExpectedOn(true);
+
                         if(FlightControllerProxy.getInstance().isLive()) {
                             if(listener == null) {
                                 MavlinkHub.getInstance().sendCommandAck(MAV_CMD.MAV_CMD_PAD_TURN_ON_DRONE, (short)MAV_RESULT.MAV_RESULT_SUCCESS);
@@ -681,7 +683,7 @@ class ChargePad {
                 if(listener == null) {
                     MavlinkHub.getInstance().sendCommandAck(MAV_CMD.MAV_CMD_PAD_TURN_OFF_DRONE, (short)MAV_RESULT.MAV_RESULT_SUCCESS);
                 } else {
-                    listener.accepted();
+                    listener.completed();
                 }
                 MApplication.commandBusy = false;
                 return;
@@ -732,6 +734,8 @@ class ChargePad {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
+
+                        FlightControllerProxy.getInstance().setExpectedOn(false);
 
                         if(!FlightControllerProxy.getInstance().isLive()) {
                             if(listener == null) {

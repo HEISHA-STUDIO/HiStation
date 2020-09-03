@@ -1,5 +1,7 @@
 package com.wilson.histation;
 
+import com.MAVLink.enums.VIDEO_STREAMING_SOURCE;
+
 import dji.common.error.DJIError;
 import dji.common.flightcontroller.FlightControllerState;
 import dji.common.flightcontroller.LocationCoordinate3D;
@@ -35,6 +37,10 @@ class FlightControllerProxy {
                 currentLocation.setLatitude((float) locationCoordinate3D.getLatitude());
                 currentLocation.setLongitude((float) locationCoordinate3D.getLongitude());
                 currentLocation.setAltitude(0);
+            }
+
+            if(!HSVideoFeeder.getInstance().videoSourceSetted) {
+                autoSwitchVideoSource(flightControllerState);
             }
         }
     };
@@ -109,5 +115,17 @@ class FlightControllerProxy {
 
     public boolean isPaused() {
         return isPaused;
+    }
+
+    private void autoSwitchVideoSource(FlightControllerState flightControllerState) {
+        if(isFlying()) {
+            if(flightControllerState.getAircraftLocation().getAltitude() > 2) {
+                HSVideoFeeder.getInstance().videoSource = VIDEO_STREAMING_SOURCE.VIDEO_STREAMING_DRONE_CAMERA;
+            } else {
+                HSVideoFeeder.getInstance().videoSource = VIDEO_STREAMING_SOURCE.VIDEO_STREAMING_T3_CAMERA;
+            }
+        } else {
+            HSVideoFeeder.getInstance().videoSource = VIDEO_STREAMING_SOURCE.VIDEO_STREAMING_T3_CAMERA;
+        }
     }
 }

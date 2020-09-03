@@ -16,6 +16,7 @@ class HSVideoFeeder {
     }
 
     public int videoSource  = VIDEO_STREAMING_SOURCE.VIDEO_STREAMING_T3_CAMERA;
+    public boolean videoSourceSetted = false;
     private AvcEncoder encoder;
     ArrayList<byte[]> encDataList = new ArrayList<byte[]>();
 
@@ -161,5 +162,6 @@ class HSVideoFeeder {
         MavlinkHub.getInstance().sendCommandAck(MAV_CMD_VIDEO_STREAMING_REQUEST, (short) MAV_RESULT.MAV_RESULT_ACCEPTED);
         videoSource = (int)msg.param1;
         MavlinkHub.getInstance().sendCommandAck(MAV_CMD_VIDEO_STREAMING_REQUEST, (short) MAV_RESULT.MAV_RESULT_SUCCESS);
+        videoSourceSetted = true;
     }
 }

@@ -47,6 +47,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import dji.common.error.DJIError;
 import dji.common.realname.AircraftBindingState;
@@ -79,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
     };
     private List<String> missingPermission = new ArrayList<>();
     private static final int REQUEST_PERMISSION_CODE = 12345;
+    private AtomicBoolean isNetworkSetup = new AtomicBoolean(false);
 
     Camera camera;
     SurfaceHolder previewHolder;
@@ -153,11 +155,13 @@ public class MainActivity extends AppCompatActivity {
             @Override public void onAvailable(Network network) {
                 super.onAvailable(network);
 
-                HSCloudBridge.getInstance().connect();
-                HSCloudBridge.getInstance().setTestListener(testListener);
-                HSCloudBridge.getInstance().setMavLinkListener(MavlinkHub.getInstance().mavLinkListener);
-                MissionPlanner.getInstance();
-                ChargePad.getInstance();
+                if(isNetworkSetup.compareAndSet(false, true)) {
+                    HSCloudBridge.getInstance().connect();
+                    HSCloudBridge.getInstance().setTestListener(testListener);
+                    HSCloudBridge.getInstance().setMavLinkListener(MavlinkHub.getInstance().mavLinkListener);
+                    MissionPlanner.getInstance();
+                    ChargePad.getInstance();
+                }
             }
         });
 

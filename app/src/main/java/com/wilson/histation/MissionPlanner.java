@@ -401,12 +401,12 @@ class MissionPlanner {
                                         ChargePad.getInstance().handOpenCanapy(new CommandResultListener() {
                                             @Override
                                             public void accepted() {
-                                                MavlinkHub.getInstance().sendText("Try to open the canapy");
+                                                MavlinkHub.getInstance().sendText("Try to open the canopy");
                                             }
 
                                             @Override
                                             public void rejected(String reason) {
-                                                MavlinkHub.getInstance().sendText("Fail to open the canapy");
+                                                MavlinkHub.getInstance().sendText("Fail to open the canopy");
                                                 MavlinkHub.getInstance().sendCommandAck(MAV_CMD_FLIGHT_PREPARE, (short)MAV_RESULT.MAV_RESULT_FAILED);
                                             }
 
@@ -418,7 +418,7 @@ class MissionPlanner {
 
                                             @Override
                                             public void failed(String reason) {
-                                                MavlinkHub.getInstance().sendText("Fail to open the canapy");
+                                                MavlinkHub.getInstance().sendText("Fail to open the canopy");
                                                 MavlinkHub.getInstance().sendCommandAck(MAV_CMD_FLIGHT_PREPARE, (short)MAV_RESULT.MAV_RESULT_FAILED);
                                             }
                                         });
@@ -536,12 +536,12 @@ class MissionPlanner {
                                         ChargePad.getInstance().handCloseCanapy(new CommandResultListener() {
                                             @Override
                                             public void accepted() {
-                                                MavlinkHub.getInstance().sendText("Try to close the canapy");
+                                                MavlinkHub.getInstance().sendText("Try to close the canopy");
                                             }
 
                                             @Override
                                             public void rejected(String reason) {
-                                                MavlinkHub.getInstance().sendText("Fail to close the canapy: " + reason);
+                                                MavlinkHub.getInstance().sendText("Fail to close the canopy: " + reason);
                                                 MavlinkHub.getInstance().sendCommandAck(MAV_CMD_ONE_KEY_TO_CHARGE, (short)MAV_RESULT.MAV_RESULT_FAILED);
                                             }
 
@@ -553,7 +553,7 @@ class MissionPlanner {
 
                                             @Override
                                             public void failed(String reason) {
-                                                MavlinkHub.getInstance().sendText("Fail to close the canapy: " + reason);
+                                                MavlinkHub.getInstance().sendText("Fail to close the canopy: " + reason);
                                                 MavlinkHub.getInstance().sendCommandAck(MAV_CMD_ONE_KEY_TO_CHARGE, (short)MAV_RESULT.MAV_RESULT_FAILED);
                                             }
                                         });

@@ -67,12 +67,14 @@ class HSCloudBridge {
             public void onFinish() {
                 String url = "tcp://" + device.getIp() + ":" + device.getPort();
                 //MApplication.LOG(url);
-                mqttManager = new MQTTManager(url);
-                mqttManager.setMessageHandlerCallBack(callBack);
-                mqttManager.connect(false,20, 2);
-                mqttManager.subscribe(device.getTopic()+"-2");
-                mqttManager.subscribe("TEST");
-                isConnected = true;
+                if(mqttManager == null) {
+                    mqttManager = new MQTTManager(url);
+                    mqttManager.setMessageHandlerCallBack(callBack);
+                    mqttManager.connect(false, 20, 2);
+                    mqttManager.subscribe(device.getTopic() + "-2");
+                    mqttManager.subscribe("TEST");
+                    isConnected = true;
+                }
             }
 
             @Override
@@ -83,9 +85,11 @@ class HSCloudBridge {
     }
 
     public void publicTopic(String topic, byte[] data) {
-        synchronized (mqttManager) {
-            if (mqttManager.isConnected()) {
-                mqttManager.publish(topic, data, false, 0);
+        if(mqttManager != null) {
+            synchronized (mqttManager) {
+                if (mqttManager.isConnected()) {
+                    mqttManager.publish(topic, data, false, 0);
+                }
             }
         }
     }
