@@ -123,6 +123,8 @@ class CameraProxy {
             mode = SettingsDefinitions.CameraMode.SHOOT_PHOTO;
         } else if(msg.param2 == CAMERA_MODE.CAMERA_MODE_VIDEO) {
             mode = SettingsDefinitions.CameraMode.RECORD_VIDEO;
+        } else if(msg.param2 == CAMERA_MODE.CAMERA_MODE_DOWNLOAD) {
+            mode = SettingsDefinitions.CameraMode.MEDIA_DOWNLOAD;
         } else {
             MavlinkHub.getInstance().sendCommandAck(MAV_CMD_SET_CAMERA_MODE, (short) MAV_RESULT.MAV_RESULT_DENIED);
             return;

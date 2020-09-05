@@ -16,7 +16,7 @@ import com.MAVLink.Messages.MAVLinkPayload;
 public class msg_mediafile_information extends MAVLinkMessage{
 
     public static final int MAVLINK_MSG_ID_MEDIAFILE_INFORMATION = 153;
-    public static final int MAVLINK_MSG_LENGTH = 62;
+    public static final int MAVLINK_MSG_LENGTH = 66;
     private static final long serialVersionUID = MAVLINK_MSG_ID_MEDIAFILE_INFORMATION;
 
 
@@ -25,6 +25,11 @@ public class msg_mediafile_information extends MAVLinkMessage{
     * The size of the mediafile.
     */
     public long file_size;
+      
+    /**
+    * The num of pages of a mediafile.
+    */
+    public long total_page;
       
     /**
     * Index of the requested file on the target storage location.
@@ -64,6 +69,8 @@ public class msg_mediafile_information extends MAVLinkMessage{
               
         packet.payload.putUnsignedLong(file_size);
               
+        packet.payload.putUnsignedInt(total_page);
+              
         packet.payload.putUnsignedShort(index);
               
         packet.payload.putUnsignedByte(storage_location);
@@ -94,6 +101,8 @@ public class msg_mediafile_information extends MAVLinkMessage{
         payload.resetIndex();
               
         this.file_size = payload.getUnsignedLong();
+              
+        this.total_page = payload.getUnsignedInt();
               
         this.index = payload.getUnsignedShort();
               
@@ -134,7 +143,7 @@ public class msg_mediafile_information extends MAVLinkMessage{
         unpack(mavLinkPacket.payload);        
     }
 
-           
+             
     /**
     * Sets the buffer of this message with a string, adds the necessary padding
     */
@@ -197,7 +206,7 @@ public class msg_mediafile_information extends MAVLinkMessage{
     * Returns a string with the MSG name and data
     */
     public String toString(){
-        return "MAVLINK_MSG_ID_MEDIAFILE_INFORMATION - sysid:"+sysid+" compid:"+compid+" file_size:"+file_size+" index:"+index+" storage_location:"+storage_location+" file_name:"+file_name+" file_type:"+file_type+" created_at:"+created_at+"";
+        return "MAVLINK_MSG_ID_MEDIAFILE_INFORMATION - sysid:"+sysid+" compid:"+compid+" file_size:"+file_size+" total_page:"+total_page+" index:"+index+" storage_location:"+storage_location+" file_name:"+file_name+" file_type:"+file_type+" created_at:"+created_at+"";
     }
 }
         

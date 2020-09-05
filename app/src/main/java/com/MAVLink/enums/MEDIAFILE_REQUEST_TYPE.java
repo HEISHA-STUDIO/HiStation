@@ -14,6 +14,7 @@ public class MEDIAFILE_REQUEST_TYPE {
    public static final int THUMBNAIL = 1; /* Thumbnail of a mediafile. | */
    public static final int PREVIEW = 2; /* Preview of a mediafile. | */
    public static final int RAW = 3; /* RAW data of a mediafile. | */
-   public static final int MEDIAFILE_REQUEST_TYPE_ENUM_END = 4; /*  | */
+   public static final int PAGE = 4; /* One page of a mediafile. | */
+   public static final int MEDIAFILE_REQUEST_TYPE_ENUM_END = 5; /*  | */
 }
             

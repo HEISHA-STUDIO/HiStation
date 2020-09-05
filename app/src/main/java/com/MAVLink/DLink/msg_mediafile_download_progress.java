@@ -4,42 +4,22 @@
  * java mavlink generator tool. It should not be modified by hand.
  */
 
-// MESSAGE MDEIAFILE_DOWNLOAD_METADATA PACKING
+// MESSAGE MEDIAFILE_DOWNLOAD_PROGRESS PACKING
 package com.MAVLink.DLink;
 import com.MAVLink.MAVLinkPacket;
 import com.MAVLink.Messages.MAVLinkMessage;
 import com.MAVLink.Messages.MAVLinkPayload;
         
 /**
-* Metadata for download of a mediafile.
+* Indicate the progress of a download process.
 */
-public class msg_mdeiafile_download_metadata extends MAVLinkMessage{
+public class msg_mediafile_download_progress extends MAVLinkMessage{
 
-    public static final int MAVLINK_MSG_ID_MDEIAFILE_DOWNLOAD_METADATA = 156;
-    public static final int MAVLINK_MSG_LENGTH = 36;
-    private static final long serialVersionUID = MAVLINK_MSG_ID_MDEIAFILE_DOWNLOAD_METADATA;
+    public static final int MAVLINK_MSG_ID_MEDIAFILE_DOWNLOAD_PROGRESS = 156;
+    public static final int MAVLINK_MSG_LENGTH = 22;
+    private static final long serialVersionUID = MAVLINK_MSG_ID_MEDIAFILE_DOWNLOAD_PROGRESS;
 
 
-      
-    /**
-    * The size of the mediafile.
-    */
-    public long file_size;
-      
-    /**
-    * Total packs, 1M per pcak.
-    */
-    public long total_packs;
-      
-    /**
-    * Index of the requested file on the target storage location.
-    */
-    public int index;
-      
-    /**
-    * The storage location, SD card or the internal storage.
-    */
-    public short storage_location;
       
     /**
     * The filename of the mediafile.
@@ -47,9 +27,14 @@ public class msg_mdeiafile_download_metadata extends MAVLinkMessage{
     public byte file_name[] = new byte[20];
       
     /**
-    * The type of the mediafile.
+    * 
     */
-    public short file_type;
+    public short process;
+      
+    /**
+    * 
+    */
+    public short percent;
     
 
     /**
@@ -60,15 +45,7 @@ public class msg_mdeiafile_download_metadata extends MAVLinkMessage{
         MAVLinkPacket packet = new MAVLinkPacket(MAVLINK_MSG_LENGTH);
         packet.sysid = 1;
         packet.compid = 1;
-        packet.msgid = MAVLINK_MSG_ID_MDEIAFILE_DOWNLOAD_METADATA;
-              
-        packet.payload.putUnsignedLong(file_size);
-              
-        packet.payload.putUnsignedInt(total_packs);
-              
-        packet.payload.putUnsignedShort(index);
-              
-        packet.payload.putUnsignedByte(storage_location);
+        packet.msgid = MAVLINK_MSG_ID_MEDIAFILE_DOWNLOAD_PROGRESS;
               
         
         for (int i = 0; i < file_name.length; i++) {
@@ -76,26 +53,20 @@ public class msg_mdeiafile_download_metadata extends MAVLinkMessage{
         }
                     
               
-        packet.payload.putUnsignedByte(file_type);
+        packet.payload.putUnsignedByte(process);
+              
+        packet.payload.putUnsignedByte(percent);
         
         return packet;
     }
 
     /**
-    * Decode a mdeiafile_download_metadata message into this class fields
+    * Decode a mediafile_download_progress message into this class fields
     *
     * @param payload The message to decode
     */
     public void unpack(MAVLinkPayload payload) {
         payload.resetIndex();
-              
-        this.file_size = payload.getUnsignedLong();
-              
-        this.total_packs = payload.getUnsignedInt();
-              
-        this.index = payload.getUnsignedShort();
-              
-        this.storage_location = payload.getUnsignedByte();
               
          
         for (int i = 0; i < this.file_name.length; i++) {
@@ -103,15 +74,17 @@ public class msg_mdeiafile_download_metadata extends MAVLinkMessage{
         }
                 
               
-        this.file_type = payload.getUnsignedByte();
+        this.process = payload.getUnsignedByte();
+              
+        this.percent = payload.getUnsignedByte();
         
     }
 
     /**
     * Constructor for a new message, just initializes the msgid
     */
-    public msg_mdeiafile_download_metadata(){
-        msgid = MAVLINK_MSG_ID_MDEIAFILE_DOWNLOAD_METADATA;
+    public msg_mediafile_download_progress(){
+        msgid = MAVLINK_MSG_ID_MEDIAFILE_DOWNLOAD_PROGRESS;
     }
 
     /**
@@ -119,14 +92,14 @@ public class msg_mdeiafile_download_metadata extends MAVLinkMessage{
     * from a mavlink packet
     *
     */
-    public msg_mdeiafile_download_metadata(MAVLinkPacket mavLinkPacket){
+    public msg_mediafile_download_progress(MAVLinkPacket mavLinkPacket){
         this.sysid = mavLinkPacket.sysid;
         this.compid = mavLinkPacket.compid;
-        this.msgid = MAVLINK_MSG_ID_MDEIAFILE_DOWNLOAD_METADATA;
+        this.msgid = MAVLINK_MSG_ID_MEDIAFILE_DOWNLOAD_PROGRESS;
         unpack(mavLinkPacket.payload);        
     }
 
-             
+     
     /**
     * Sets the buffer of this message with a string, adds the necessary padding
     */
@@ -155,12 +128,12 @@ public class msg_mdeiafile_download_metadata extends MAVLinkMessage{
         return buf.toString();
 
     }
-                           
+                             
     /**
     * Returns a string with the MSG name and data
     */
     public String toString(){
-        return "MAVLINK_MSG_ID_MDEIAFILE_DOWNLOAD_METADATA - sysid:"+sysid+" compid:"+compid+" file_size:"+file_size+" total_packs:"+total_packs+" index:"+index+" storage_location:"+storage_location+" file_name:"+file_name+" file_type:"+file_type+"";
+        return "MAVLINK_MSG_ID_MEDIAFILE_DOWNLOAD_PROGRESS - sysid:"+sysid+" compid:"+compid+" file_name:"+file_name+" process:"+process+" percent:"+percent+"";
     }
 }
         

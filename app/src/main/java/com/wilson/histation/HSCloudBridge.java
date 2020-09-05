@@ -31,7 +31,7 @@ class HSCloudBridge {
                 if(mavLinkListener != null) {
                     mavLinkListener.onMessage(bytes);
                 }
-            } else if(s.equals("TEST")) {
+            } else if(s.equals(device.getTopic() + "-t")) {
                 if(testListener != null) {
                     testListener.onMessage(new String(bytes));
                 }
@@ -72,7 +72,7 @@ class HSCloudBridge {
                     mqttManager.setMessageHandlerCallBack(callBack);
                     mqttManager.connect(false, 20, 2);
                     mqttManager.subscribe(device.getTopic() + "-2");
-                    mqttManager.subscribe("TEST");
+                    mqttManager.subscribe(device.getTopic() + "-t");
                     isConnected = true;
                 }
             }
@@ -95,7 +95,9 @@ class HSCloudBridge {
     }
 
     public void sendDebug(String message) {
-        publicTopic("DEBUG", message.getBytes());
+        if(device != null) {
+            publicTopic(device.getTopic() + "-d", message.getBytes());
+        }
     }
 
     public String   getTopic() {

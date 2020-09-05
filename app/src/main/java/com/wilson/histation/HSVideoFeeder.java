@@ -99,6 +99,18 @@ class HSVideoFeeder {
         }
     }
 
+    public void mediaFileFeed(byte[] data) {
+        if(videoSource != VIDEO_STREAMING_SOURCE.VIDEO_STREAMING_MEDIAFILE) {
+            return;
+        }
+
+        if(data.length > 0) {
+            synchronized (encDataList) {
+                encDataList.add(data);
+            }
+        }
+    }
+
     public void publishMQTTTopic(byte[] data, int len) {
 
         MQTTVideoPacket.packet_index++;

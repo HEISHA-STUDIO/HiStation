@@ -13,6 +13,7 @@ public class VIDEO_STREAMING_SOURCE {
    public static final int UNKNOWN = 0; /* Unknown | */
    public static final int VIDEO_STREAMING_T3_CAMERA = 1; /* Video streaming from T3 camera. | */
    public static final int VIDEO_STREAMING_DRONE_CAMERA = 2; /* Video streaming from drone camera. | */
-   public static final int VIDEO_STREAMING_SOURCE_ENUM_END = 3; /*  | */
+   public static final int VIDEO_STREAMING_MEDIAFILE = 3; /* Used for raw file download. | */
+   public static final int VIDEO_STREAMING_SOURCE_ENUM_END = 4; /*  | */
 }
             

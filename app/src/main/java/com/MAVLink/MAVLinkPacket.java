@@ -215,11 +215,8 @@ public class MAVLinkPacket implements Serializable {
             case msg_storage_information.MAVLINK_MSG_ID_STORAGE_INFORMATION:
                 return  new msg_storage_information(this);
                  
-            case msg_mdeiafile_download_metadata.MAVLINK_MSG_ID_MDEIAFILE_DOWNLOAD_METADATA:
-                return  new msg_mdeiafile_download_metadata(this);
-                 
-            case msg_mediafile_download_segment.MAVLINK_MSG_ID_MEDIAFILE_DOWNLOAD_SEGMENT:
-                return  new msg_mediafile_download_segment(this);
+            case msg_mediafile_download_progress.MAVLINK_MSG_ID_MEDIAFILE_DOWNLOAD_PROGRESS:
+                return  new msg_mediafile_download_progress(this);
                  
             case msg_camera_information.MAVLINK_MSG_ID_CAMERA_INFORMATION:
                 return  new msg_camera_information(this);

@@ -16,10 +16,15 @@ import com.MAVLink.Messages.MAVLinkPayload;
 public class msg_mediafile_request extends MAVLinkMessage{
 
     public static final int MAVLINK_MSG_ID_MEDIAFILE_REQUEST = 152;
-    public static final int MAVLINK_MSG_LENGTH = 4;
+    public static final int MAVLINK_MSG_LENGTH = 8;
     private static final long serialVersionUID = MAVLINK_MSG_ID_MEDIAFILE_REQUEST;
 
 
+      
+    /**
+    * The index of the request page.
+    */
+    public long page_index;
       
     /**
     * Index of the requested file on the target storage location.
@@ -47,6 +52,8 @@ public class msg_mediafile_request extends MAVLinkMessage{
         packet.compid = 1;
         packet.msgid = MAVLINK_MSG_ID_MEDIAFILE_REQUEST;
               
+        packet.payload.putUnsignedInt(page_index);
+              
         packet.payload.putUnsignedShort(index);
               
         packet.payload.putUnsignedByte(storage_location);
@@ -63,6 +70,8 @@ public class msg_mediafile_request extends MAVLinkMessage{
     */
     public void unpack(MAVLinkPayload payload) {
         payload.resetIndex();
+              
+        this.page_index = payload.getUnsignedInt();
               
         this.index = payload.getUnsignedShort();
               
@@ -91,12 +100,12 @@ public class msg_mediafile_request extends MAVLinkMessage{
         unpack(mavLinkPacket.payload);        
     }
 
-          
+            
     /**
     * Returns a string with the MSG name and data
     */
     public String toString(){
-        return "MAVLINK_MSG_ID_MEDIAFILE_REQUEST - sysid:"+sysid+" compid:"+compid+" index:"+index+" storage_location:"+storage_location+" request_type:"+request_type+"";
+        return "MAVLINK_MSG_ID_MEDIAFILE_REQUEST - sysid:"+sysid+" compid:"+compid+" page_index:"+page_index+" index:"+index+" storage_location:"+storage_location+" request_type:"+request_type+"";
     }
 }
         

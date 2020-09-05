@@ -9,6 +9,11 @@ import com.MAVLink.enums.MAV_CMD;
 import com.MAVLink.enums.MEDIAFILE_REQUEST_TYPE;
 import com.MAVLink.enums.VIDEO_STREAMING_SOURCE;
 
+import dji.common.camera.SettingsDefinitions;
+import dji.common.error.DJIError;
+import dji.common.util.CommonCallbacks;
+import dji.sdk.camera.Camera;
+
 class LocalTester {
     private static final LocalTester ourInstance = new LocalTester();
 
@@ -82,6 +87,14 @@ class LocalTester {
         MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
     }
 
+    public void testSetDownloadMode() {
+        msg_command_int msg = new msg_command_int();
+        msg.command = MAV_CMD.MAV_CMD_SET_CAMERA_MODE;
+        msg.param2 = CAMERA_MODE.CAMERA_MODE_DOWNLOAD;
+
+        MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
+    }
+
     public void testTakePhoto() {
         msg_command_int msg = new msg_command_int();
         msg.command = MAV_CMD.MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE;
@@ -107,6 +120,14 @@ class LocalTester {
         msg_command_int msg = new msg_command_int();
         msg.command = MAV_CMD.MAV_CMD_VIDEO_STREAMING_REQUEST;
         msg.param1 = VIDEO_STREAMING_SOURCE.VIDEO_STREAMING_T3_CAMERA;
+
+        MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
+    }
+
+    public void testDownloadStreaming() {
+        msg_command_int msg = new msg_command_int();
+        msg.command = MAV_CMD.MAV_CMD_VIDEO_STREAMING_REQUEST;
+        msg.param1 = VIDEO_STREAMING_SOURCE.VIDEO_STREAMING_MEDIAFILE;
 
         MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
     }
@@ -137,7 +158,7 @@ class LocalTester {
         msg_mediafile_request msg = new msg_mediafile_request();
         msg.storage_location = CAMERA_STORAGE_LOCATION.SDCARD;
         msg.index = index_sd++;
-        msg.request_type = MEDIAFILE_REQUEST_TYPE.INFORMATION;
+        msg.request_type = MEDIAFILE_REQUEST_TYPE.THUMBNAIL;
 
         MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
     }
@@ -146,7 +167,35 @@ class LocalTester {
         msg_mediafile_request msg = new msg_mediafile_request();
         msg.storage_location = CAMERA_STORAGE_LOCATION.INTERNAL_STORAGE;
         msg.index = index_in++;
-        msg.request_type = MEDIAFILE_REQUEST_TYPE.INFORMATION;
+        msg.request_type = MEDIAFILE_REQUEST_TYPE.THUMBNAIL;
+
+        MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
+    }
+
+    public void testSDPreviewRequest() {
+        msg_mediafile_request msg = new msg_mediafile_request();
+        msg.storage_location = CAMERA_STORAGE_LOCATION.SDCARD;
+        msg.index = index_in++;
+        msg.request_type = MEDIAFILE_REQUEST_TYPE.PREVIEW;
+
+        MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
+    }
+
+    public void testSDRawFile() {
+        msg_mediafile_request msg = new msg_mediafile_request();
+        msg.storage_location = CAMERA_STORAGE_LOCATION.SDCARD;
+        msg.index = index_in++;
+        msg.request_type = MEDIAFILE_REQUEST_TYPE.RAW;
+
+        MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
+    }
+
+    public void testSDRawPage() {
+        msg_mediafile_request msg = new msg_mediafile_request();
+        msg.storage_location = CAMERA_STORAGE_LOCATION.SDCARD;
+        msg.request_type = MEDIAFILE_REQUEST_TYPE.PAGE;
+        msg.index = 0;
+        msg.page_index = 0;
 
         MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
     }

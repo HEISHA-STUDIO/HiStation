@@ -60,19 +60,65 @@ class ChargePad {
 
     private void handleSerialData(byte[] data, int len) {
         //HSCloudBridge.getInstance().sendDebug("Data: " + len);
-        chargeStatus = data[4];
-        barStatus = data[3];
 
-        int voltage_1 = 0xFF & data[7];
-        int voltage_2 = 0xFF & data[8];
-        chargeVoltage = voltage_2 * 256 + voltage_1;
+        for(int i=0; i<len; i++) {
+            int temp = 0xFF & data[i];
+            decoder(temp);
+        }
 
-        int current_1 = 0xFF & data[9];
-        int current_2 = 0xFF & data[10];
-        chargeCurrent = current_2 * 256 + current_1;
+        if(isLive()) {
+            //HSCloudBridge.getInstance().sendDebug("Chargepad: " + barStatus + " " + chargeStatus + " " + chargeVoltage + " " + chargeCurrent);
+        }
+    }
 
-        lastUpdatedTimeUs = System.currentTimeMillis();
-        bLive = true;
+    private int decoder_state = 0;
+    private int[] decoder_buffer = new int[13];
+    private int decoder_receive = 0;
+
+    private void decoder(int data) {
+        switch (decoder_state) {
+            case 0:
+                if(data == 0x55) {
+                    decoder_state = 1;
+                    decoder_buffer[0] = data;
+                    decoder_receive = 1;
+                }
+                break;
+            case 1:
+                if(data == 0xAA) {
+                    decoder_state = 2;
+                    decoder_receive = 2;
+                    decoder_buffer[1] = data;
+                } else {
+                    HSCloudBridge.getInstance().sendDebug("Head Error");
+                    decoder_state = 0;
+                    decoder_receive = 0;
+                }
+                break;
+            case 2:
+                decoder_buffer[decoder_receive++] = data;
+                if(decoder_receive == 13) {
+                    int check = 0;
+                    for(int j=0; j<12; j++) {
+                        check += decoder_buffer[j];
+                    }
+
+                    if((0xFF&check) == (int)(0xFF & decoder_buffer[12])) {
+                        chargeStatus = (byte)decoder_buffer[4];
+                        barStatus = (byte)decoder_buffer[3];
+                        chargeVoltage = decoder_buffer[8] * 256 + decoder_buffer[7];
+                        chargeCurrent = decoder_buffer[10] * 256 + decoder_buffer[9];
+                        lastUpdatedTimeUs = System.currentTimeMillis();
+                        bLive = true;
+                    } else {
+                        HSCloudBridge.getInstance().sendDebug("Check Error");
+                    }
+                    decoder_receive = 0;
+                    decoder_state = 0;
+                }
+                break;
+
+        }
     }
 
     private void sendData(byte[] buf) {

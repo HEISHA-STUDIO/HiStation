@@ -16,8 +16,6 @@ import android.net.NetworkRequest;
 import android.os.Build;
 import android.os.Bundle;
 
-import com.MAVLink.enums.CAMERA_MODE;
-import com.MAVLink.enums.VIDEO_STREAMING_SOURCE;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.pgyersdk.crash.PgyCrashManager;
 import com.pgyersdk.update.DownloadFileListener;
@@ -33,14 +31,12 @@ import androidx.core.content.ContextCompat;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
@@ -54,7 +50,6 @@ import dji.common.realname.AircraftBindingState;
 import dji.common.realname.AppActivationState;
 import dji.common.useraccount.UserAccountState;
 import dji.common.util.CommonCallbacks;
-import dji.sdk.battery.Battery;
 import dji.sdk.codec.DJICodecManager;
 import dji.sdk.realname.AppActivationManager;
 import dji.sdk.sdkmanager.DJISDKManager;
@@ -382,9 +377,9 @@ public class MainActivity extends AppCompatActivity {
                     continue;
                 }
 
-                if(message.equals("Gimbal")) {
-                    GimbaProxy.getInstance().moving(10,0);
-                }else if (message.equals("SET_IMAGE")){
+                if(message.equals("SET_DOWNLOAD")) {
+                    LocalTester.getInstance().testSetDownloadMode();
+                } else if (message.equals("SET_IMAGE")){
                     LocalTester.getInstance().testSetPhotoMode();
                 } else if(message.equals("SET_VIDEO")) {
                     LocalTester.getInstance().testSetVideoMode();
@@ -394,17 +389,7 @@ public class MainActivity extends AppCompatActivity {
                     LocalTester.getInstance().testStartRecord();
                 } else if(message.equals("STOP_VIDEO")) {
                     LocalTester.getInstance().testStopRecord();
-                } else if(message.equals("T3")) {
-                    LocalTester.getInstance().testT3Streaming();
-                } else if(message.equals("DRONE")) {
-                    LocalTester.getInstance().testDroneStreaming();
-                } else if(message.equals("LOGIN")) {
-                    login();
-                } else if(message.equals("LOCKED")) {
-                    ChargePad.getInstance().barStatus = ChargePad.BAR_STATUS_LOCKED;
-                } else if(message.equals("UNLOCKED")) {
-                    ChargePad.getInstance().barStatus = ChargePad.BAR_STATUS_UNLOCKED;
-                }else if(message.equals("SD")) {
+                } else if(message.equals("SD")) {
                     LocalTester.getInstance().testSetStorageSD();
                 } else if(message.equals("Internal")) {
                     LocalTester.getInstance().testSetStorageInternal();
@@ -416,6 +401,16 @@ public class MainActivity extends AppCompatActivity {
                     LocalTester.getInstance().testSDMediaFileReqeust();
                 } else if(message.equals("IN_INFO")) {
                     LocalTester.getInstance().testINMediaFileRequest();
+                } else if(message.equals("Preview")) {
+                    LocalTester.getInstance().testSDPreviewRequest();
+                } else if(message.equals("Raw")) {
+                    LocalTester.getInstance().testSDRawFile();
+                } else if(message.equals("Page")) {
+                    LocalTester.getInstance().testSDRawPage();
+                } else if(message.equals("T3")) {
+                    LocalTester.getInstance().testT3Streaming();
+                } else if(message.equals("FILE")) {
+                    LocalTester.getInstance().testDownloadStreaming();
                 }
             }
         }
@@ -486,7 +481,7 @@ public class MainActivity extends AppCompatActivity {
                 MainActivity.this.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        activationState = "" + activationState;
+                        activationState = "" + appActivationState;
                         updateTitle();
                     }
                 });
@@ -543,6 +538,8 @@ public class MainActivity extends AppCompatActivity {
             title += " - " + activationState;
         }
         toolbar.setTitle(title);
+
+        HSCloudBridge.getInstance().sendDebug(title);
     }
 
     private void initUpdate() {

@@ -16,10 +16,15 @@ import com.MAVLink.Messages.MAVLinkPayload;
 public class msg_mediafile_data_segment extends MAVLinkMessage{
 
     public static final int MAVLINK_MSG_ID_MEDIAFILE_DATA_SEGMENT = 154;
-    public static final int MAVLINK_MSG_LENGTH = 254;
+    public static final int MAVLINK_MSG_LENGTH = 218;
     private static final long serialVersionUID = MAVLINK_MSG_ID_MEDIAFILE_DATA_SEGMENT;
 
 
+      
+    /**
+    * The index the request page.
+    */
+    public long page_index;
       
     /**
     * The total segments of the file.
@@ -54,7 +59,7 @@ public class msg_mediafile_data_segment extends MAVLinkMessage{
     /**
     * Image data.
     */
-    public byte data[] = new byte[240];
+    public byte data[] = new byte[200];
     
 
     /**
@@ -66,6 +71,8 @@ public class msg_mediafile_data_segment extends MAVLinkMessage{
         packet.sysid = 1;
         packet.compid = 1;
         packet.msgid = MAVLINK_MSG_ID_MEDIAFILE_DATA_SEGMENT;
+              
+        packet.payload.putUnsignedInt(page_index);
               
         packet.payload.putUnsignedInt(total);
               
@@ -95,6 +102,8 @@ public class msg_mediafile_data_segment extends MAVLinkMessage{
     */
     public void unpack(MAVLinkPayload payload) {
         payload.resetIndex();
+              
+        this.page_index = payload.getUnsignedInt();
               
         this.total = payload.getUnsignedInt();
               
@@ -135,12 +144,12 @@ public class msg_mediafile_data_segment extends MAVLinkMessage{
         unpack(mavLinkPacket.payload);        
     }
 
-                  
+                    
     /**
     * Returns a string with the MSG name and data
     */
     public String toString(){
-        return "MAVLINK_MSG_ID_MEDIAFILE_DATA_SEGMENT - sysid:"+sysid+" compid:"+compid+" total:"+total+" seq:"+seq+" index:"+index+" len:"+len+" storage_location:"+storage_location+" request_type:"+request_type+" data:"+data+"";
+        return "MAVLINK_MSG_ID_MEDIAFILE_DATA_SEGMENT - sysid:"+sysid+" compid:"+compid+" page_index:"+page_index+" total:"+total+" seq:"+seq+" index:"+index+" len:"+len+" storage_location:"+storage_location+" request_type:"+request_type+" data:"+data+"";
     }
 }
         
