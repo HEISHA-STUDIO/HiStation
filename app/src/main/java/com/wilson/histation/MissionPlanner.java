@@ -32,6 +32,7 @@ import dji.common.mission.waypoint.WaypointMissionFlightPathMode;
 import dji.common.mission.waypoint.WaypointMissionHeadingMode;
 import dji.common.mission.waypoint.WaypointMissionUploadEvent;
 import dji.common.util.CommonCallbacks;
+import dji.sdk.flightcontroller.FlightController;
 import dji.sdk.mission.MissionControl;
 import dji.sdk.mission.waypoint.WaypointMissionOperator;
 import dji.sdk.mission.waypoint.WaypointMissionOperatorListener;
@@ -44,6 +45,7 @@ import static com.MAVLink.DLink.msg_mission_request.MAVLINK_MSG_ID_MISSION_REQUE
 import static com.MAVLink.DLink.msg_mission_request_list.MAVLINK_MSG_ID_MISSION_REQUEST_LIST;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_DO_PAUSE_CONTINUE;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_FLIGHT_PREPARE;
+import static com.MAVLink.enums.MAV_CMD.MAV_CMD_NAV_RETURN_TO_LAUNCH;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_NAV_TAKEOFF;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_ONE_KEY_TO_CHARGE;
 import static com.MAVLink.enums.MAV_FRAME.MAV_FRAME_GLOBAL_RELATIVE_ALT;
@@ -150,6 +152,7 @@ class MissionPlanner {
 
     private void startWayPointReceive(MAVLinkPacket packet) {
         msg_mission_count msg = (msg_mission_count)packet.unpack();
+        HSCloudBridge.getInstance().sendDebug(msg.toString());
         waypointCount = msg.count;
         waypointReceived = 0;
 
@@ -166,10 +169,12 @@ class MissionPlanner {
             msg_mission_ack msg = new msg_mission_ack();
             msg.type = 0;
             packet = msg.pack();
+            HSCloudBridge.getInstance().sendDebug(msg.toString());
         } else {
             msg_mission_request msg = new msg_mission_request();
             msg.seq = waypointReceived;
             packet = msg.pack();
+            HSCloudBridge.getInstance().sendDebug(msg.toString());
         }
 
         MavlinkHub.getInstance().sendMavlinkPacket(packet);
@@ -177,6 +182,7 @@ class MissionPlanner {
 
     private void receiveMissionItem(MAVLinkPacket packet) {
         msg_mission_item msg = (msg_mission_item)packet.unpack();
+        HSCloudBridge.getInstance().sendDebug(msg.toString());
         if(msg.command == 16) {
             Location waypoint = new Location(msg.x, msg.y, msg.z);
             savedWaypoints.add(waypoint);
@@ -315,6 +321,9 @@ class MissionPlanner {
                 break;
             case MAV_CMD_DO_PAUSE_CONTINUE:
                 handlePause();
+                break;
+            case MAV_CMD_NAV_RETURN_TO_LAUNCH:
+                handleRTL();
                 break;
         }
     }
@@ -817,5 +826,36 @@ class MissionPlanner {
         }
 
         return 0;
+    }
+
+    void handleRTL() {
+        FlightController flightController = MApplication.getFlightControllerInstance();
+        if(flightController == null) {
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_NAV_RETURN_TO_LAUNCH, (short)MAV_RESULT.MAV_RESULT_DENIED);
+            return;
+        }
+
+        if(!flightController.isConnected()) {
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_NAV_RETURN_TO_LAUNCH, (short)MAV_RESULT.MAV_RESULT_DENIED);
+            return;
+        }
+
+        if(!FlightControllerProxy.getInstance().isFlying()) {
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_NAV_RETURN_TO_LAUNCH, (short)MAV_RESULT.MAV_RESULT_DENIED);
+            return;
+        }
+
+        MavlinkHub.getInstance().sendCommandAck(MAV_CMD_NAV_RETURN_TO_LAUNCH, (short)MAV_RESULT.MAV_RESULT_ACCEPTED);
+
+        flightController.startGoHome(new CommonCallbacks.CompletionCallback() {
+            @Override
+            public void onResult(DJIError djiError) {
+                if(djiError == null) {
+                    MavlinkHub.getInstance().sendCommandAck(MAV_CMD_NAV_RETURN_TO_LAUNCH, (short)MAV_RESULT.MAV_RESULT_SUCCESS);
+                } else {
+                    MavlinkHub.getInstance().sendCommandAck(MAV_CMD_NAV_RETURN_TO_LAUNCH, (short)MAV_RESULT.MAV_RESULT_FAILED);
+                }
+            }
+        });
     }
 }

@@ -91,6 +91,7 @@ class ChargePad {
                     decoder_buffer[1] = data;
                 } else {
                     HSCloudBridge.getInstance().sendDebug("Head Error");
+                    MavlinkHub.getInstance().sendText("ChargePad Head Error");
                     decoder_state = 0;
                     decoder_receive = 0;
                 }
@@ -112,6 +113,7 @@ class ChargePad {
                         bLive = true;
                     } else {
                         HSCloudBridge.getInstance().sendDebug("Check Error");
+                        MavlinkHub.getInstance().sendText("ChargePad Check Error");
                     }
                     decoder_receive = 0;
                     decoder_state = 0;
@@ -136,7 +138,7 @@ class ChargePad {
     public boolean isLive() {
 
         if((System.currentTimeMillis()-lastUpdatedTimeUs) > 5000) {
-            bLive = true;
+            bLive = false;
         }
         return bLive;
     }
@@ -577,7 +579,7 @@ class ChargePad {
 
                     if(System.currentTimeMillis() - timeStart > 15000) {
                         if(listener == null) {
-                            MavlinkHub.getInstance().sendCommandAck(MAV_CMD.MAV_CMD_PAD_TURN_ON_RC, (short)MAV_RESULT.MAV_RESULT_FAILED);
+                            MavlinkHub.getInstance().sendCommandAck(MAV_CMD.MAV_CMD_PAD_TURN_OFF_RC, (short)MAV_RESULT.MAV_RESULT_FAILED);
                         } else {
                             listener.failed("Timeout");
                         }
@@ -930,7 +932,7 @@ class ChargePad {
             @Override
             public void run() {
                 try {
-                    Thread.sleep(10000);
+                    Thread.sleep(2000);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -976,7 +978,7 @@ class ChargePad {
             @Override
             public void run() {
                 try {
-                    Thread.sleep(10000);
+                    Thread.sleep(2000);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

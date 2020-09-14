@@ -67,77 +67,81 @@ public class MApplication extends Application {
                 @Override
                 public void run() {
                     showToast("registering, pls wait...");
-                    DJISDKManager.getInstance().registerApp(getApplicationContext(), new DJISDKManager.SDKManagerCallback() {
-                        @Override
-                        public void onRegister(DJIError djiError) {
-                            if (djiError == DJISDKError.REGISTRATION_SUCCESS) {
-                                showToast("Register Success");
-                                DJISDKManager.getInstance().startConnectionToProduct();
-                            } else {
-                                showToast("Register sdk fails, please check the bundle id and network connection!");
-                            }
-                        }
-
-                        @Override
-                        public void onProductDisconnect() {
-                            showToast("Product Disconnected");
-                            notifyStatusChange();
-                        }
-
-                        @Override
-                        public void onProductConnect(BaseProduct baseProduct) {
-                            showToast("Product Connect");
-                            notifyStatusChange();
-                        }
-
-                        //@Override
-                        //public void onProductChanged(BaseProduct baseProduct) {
-
-                       // }
-
-                        @Override
-                        public void onComponentChange(BaseProduct.ComponentKey componentKey, BaseComponent baseComponent, BaseComponent baseComponent1) {
-                            if (baseComponent1 != null) {
-                                if(componentKey.equals(REMOTE_CONTROLLER)) {
-                                    HSCloudBridge.getInstance().sendDebug("RC online");
-                                    RemoteControllerProxy.getInstance().setBatteryStateCallback((RemoteController)baseComponent1);
-                                }
-                                if(componentKey.equals(AIR_LINK)) {
-                                    HSCloudBridge.getInstance().sendDebug("Telemetry online");
-                                    //baseComponent1.setComponentListener((BaseComponent.ComponentListener)telemetry);
-                                }
-                                if(componentKey.equals(BATTERY)) {
-                                    HSCloudBridge.getInstance().sendDebug("Battery online");
-                                    BatteryProxy.getInstance().setCallback((Battery)baseComponent1);
-                                    //baseComponent1.setComponentListener((BaseComponent.ComponentListener)battery);
-                                }
-                                if(componentKey.equals(GIMBAL)) {
-                                    HSCloudBridge.getInstance().sendDebug("Gimbal online");
-                                    //baseComponent1.setComponentListener((BaseComponent.ComponentListener)gimbal);
-                                }
-                                if(componentKey.equals(CAMERA)) {
-                                    HSCloudBridge.getInstance().sendDebug("Camera online");
-                                    CameraProxy.getInstance().setVideoDataListener((Camera)baseComponent1);
-                                    //baseComponent1.setComponentListener((BaseComponent.ComponentListener)camera);
-                                }
-                                if(componentKey.equals(FLIGHT_CONTROLLER)) {
-                                    HSCloudBridge.getInstance().sendDebug("FC online");
-                                    FlightControllerProxy.getInstance().setFlightControllerStatusCallback((FlightController)baseComponent1);
-                                    //baseComponent1.setComponentListener((BaseComponent.ComponentListener)flightController);
+                    try {
+                        DJISDKManager.getInstance().registerApp(getApplicationContext(), new DJISDKManager.SDKManagerCallback() {
+                            @Override
+                            public void onRegister(DJIError djiError) {
+                                if (djiError == DJISDKError.REGISTRATION_SUCCESS) {
+                                    showToast("Register Success");
+                                    DJISDKManager.getInstance().startConnectionToProduct();
+                                } else {
+                                    showToast("Register sdk fails, please check the bundle id and network connection!");
                                 }
                             }
-                        }
 
-                        @Override
-                        public void onInitProcess(DJISDKInitEvent djisdkInitEvent, int i) {
+                            @Override
+                            public void onProductDisconnect() {
+                                showToast("Product Disconnected");
+                                notifyStatusChange();
+                            }
 
-                        }
+                            @Override
+                            public void onProductConnect(BaseProduct baseProduct) {
+                                showToast("Product Connect");
+                                notifyStatusChange();
+                            }
 
-                        @Override
-                        public void onDatabaseDownloadProgress(long l, long l1) {
+                            /*@Override
+                            public void onProductChanged(BaseProduct baseProduct) {
 
-                        }
-                    });
+                            }*/
+
+                            @Override
+                            public void onComponentChange(BaseProduct.ComponentKey componentKey, BaseComponent baseComponent, BaseComponent baseComponent1) {
+                                if (baseComponent1 != null) {
+                                    if (componentKey.equals(REMOTE_CONTROLLER)) {
+                                        HSCloudBridge.getInstance().sendDebug("RC online");
+                                        RemoteControllerProxy.getInstance().setBatteryStateCallback((RemoteController) baseComponent1);
+                                    }
+                                    if (componentKey.equals(AIR_LINK)) {
+                                        HSCloudBridge.getInstance().sendDebug("Telemetry online");
+                                        //baseComponent1.setComponentListener((BaseComponent.ComponentListener)telemetry);
+                                    }
+                                    if (componentKey.equals(BATTERY)) {
+                                        HSCloudBridge.getInstance().sendDebug("Battery online");
+                                        BatteryProxy.getInstance().setCallback((Battery) baseComponent1);
+                                        //baseComponent1.setComponentListener((BaseComponent.ComponentListener)battery);
+                                    }
+                                    if (componentKey.equals(GIMBAL)) {
+                                        HSCloudBridge.getInstance().sendDebug("Gimbal online");
+                                        //baseComponent1.setComponentListener((BaseComponent.ComponentListener)gimbal);
+                                    }
+                                    if (componentKey.equals(CAMERA)) {
+                                        HSCloudBridge.getInstance().sendDebug("Camera online");
+                                        CameraProxy.getInstance().setVideoDataListener((Camera) baseComponent1);
+                                        //baseComponent1.setComponentListener((BaseComponent.ComponentListener)camera);
+                                    }
+                                    if (componentKey.equals(FLIGHT_CONTROLLER)) {
+                                        HSCloudBridge.getInstance().sendDebug("FC online");
+                                        FlightControllerProxy.getInstance().setFlightControllerStatusCallback((FlightController) baseComponent1);
+                                        //baseComponent1.setComponentListener((BaseComponent.ComponentListener)flightController);
+                                    }
+                                }
+                            }
+
+                            @Override
+                            public void onInitProcess(DJISDKInitEvent djisdkInitEvent, int i) {
+
+                            }
+
+                            @Override
+                            public void onDatabaseDownloadProgress(long l, long l1) {
+
+                            }
+                        });
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             });
         }

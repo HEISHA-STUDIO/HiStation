@@ -132,7 +132,7 @@ public class MainActivity extends AppCompatActivity {
 
         initUI();
 
-        initActivateManager();
+        //initActivateManager();
 
         initUpdate();
 
@@ -151,6 +151,7 @@ public class MainActivity extends AppCompatActivity {
                 super.onAvailable(network);
 
                 if(isNetworkSetup.compareAndSet(false, true)) {
+                    initActivateManager();
                     HSCloudBridge.getInstance().connect();
                     HSCloudBridge.getInstance().setTestListener(testListener);
                     HSCloudBridge.getInstance().setMavLinkListener(MavlinkHub.getInstance().mavLinkListener);

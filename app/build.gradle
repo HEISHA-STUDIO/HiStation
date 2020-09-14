@@ -7,8 +7,8 @@ android {
         applicationId "com.wilson.histation"
         minSdkVersion 26
         targetSdkVersion 29
-        versionCode 41
-        versionName "1.2.4"
+        versionCode 42
+        versionName "1.2.5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -71,7 +71,7 @@ dependencies {
     implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
 
     implementation('com.dji:dji-sdk:4.12')
-    compileOnly ('com.dji:dji-sdk-provided:4.12')
+    compileOnly('com.dji:dji-sdk-provided:4.12')
     implementation 'androidx.lifecycle:lifecycle-extensions:2.0.0-rc01'
 
     implementation 'com.alibaba:fastjson:1.2.68'

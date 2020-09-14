@@ -6,6 +6,7 @@ import com.MAVLink.DLink.msg_command_int;
 import com.MAVLink.DLink.msg_global_position_int;
 import com.MAVLink.DLink.msg_gps_raw_int;
 import com.MAVLink.DLink.msg_heartbeat;
+import com.MAVLink.DLink.msg_radio_status;
 import com.MAVLink.DLink.msg_statustext;
 import com.MAVLink.DLink.msg_sys_status;
 import com.MAVLink.MAVLinkPacket;
@@ -395,5 +396,12 @@ class MavlinkHub {
 
         sendMavlinkPacket(msg.pack());
         HSCloudBridge.getInstance().sendDebug(msg.toString());
+    }
+
+    public void sendRssi() {
+        msg_radio_status msg = new msg_radio_status();
+        msg.rssi = 180;
+
+        sendMavlinkPacket(msg.pack());
     }
 }
