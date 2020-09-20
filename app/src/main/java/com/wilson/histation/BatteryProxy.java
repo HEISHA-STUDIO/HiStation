@@ -19,6 +19,7 @@ class BatteryProxy {
             //HSCloudBridge.getInstance().sendDebug("Battery: " + batteryState.getChargeRemainingInPercent());
             if(isLive()) {
                 MavlinkHub.getInstance().sendSystemStatus(batteryState);
+                MavlinkHub.getInstance().sendBatteryStatus();
                 MavlinkHub.getInstance().sendRssi();
             }
 
