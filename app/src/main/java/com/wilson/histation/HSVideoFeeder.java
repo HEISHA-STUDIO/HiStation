@@ -128,7 +128,10 @@ class HSVideoFeeder {
 
             byte[] buf = new byte[24 + packet.len];
             packet.pack(buf);
-            HSCloudBridge.getInstance().publicTopic(HSCloudBridge.getInstance().getTopic(), buf);
+            if(videoSource == VIDEO_STREAMING_SOURCE.VIDEO_STREAMING_MEDIAFILE)
+                HSCloudBridge.getInstance().publicTopic(HSCloudBridge.getInstance().getTopic() + "-3", buf);
+            else
+                HSCloudBridge.getInstance().publicTopic(HSCloudBridge.getInstance().getTopic(), buf);
             //HSCloudBridge.getInstance().publicTopic(HSCloudBridge.getInstance().getTopic(), "VIDEO".getBytes());
         } else {
             int n, i;
@@ -156,7 +159,10 @@ class HSVideoFeeder {
 
                 byte[] buf = new byte[24 + packet.len];
                 packet.pack(buf);
-                HSCloudBridge.getInstance().publicTopic(HSCloudBridge.getInstance().getTopic(), buf);
+                if(videoSource == VIDEO_STREAMING_SOURCE.VIDEO_STREAMING_MEDIAFILE)
+                    HSCloudBridge.getInstance().publicTopic(HSCloudBridge.getInstance().getTopic() + "-3", buf);
+                else
+                    HSCloudBridge.getInstance().publicTopic(HSCloudBridge.getInstance().getTopic(), buf);
                 //HSCloudBridge.getInstance().publicTopic(HSCloudBridge.getInstance().getTopic(), "VIDEO".getBytes());
             }
         }

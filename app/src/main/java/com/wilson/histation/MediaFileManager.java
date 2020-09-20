@@ -35,6 +35,7 @@ import dji.sdk.media.MediaManager;
 
 import static com.MAVLink.DLink.msg_mediafile_request.MAVLINK_MSG_ID_MEDIAFILE_REQUEST;
 import static com.MAVLink.DLink.msg_mediafile_request_list.MAVLINK_MSG_ID_MEDIAFILE_REQUEST_LIST;
+import static com.MAVLink.enums.MAV_CMD.MAV_CMD_REQUEST_STORAGE_FORMAT;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_SET_STORAGE_LOCATION;
 
 class MediaFileManager {
@@ -198,7 +199,49 @@ class MediaFileManager {
             case MAV_CMD_SET_STORAGE_LOCATION:
                 handleSetStorageLocation(msg);
                 break;
+            case MAV_CMD_REQUEST_STORAGE_FORMAT:
+                handleStorageFormat(msg);
+                break;
         }
+    }
+
+    private void handleStorageFormat(msg_command_int msg) {
+        Camera camera = MApplication.getCameraInstance();
+
+        if(camera == null) {
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_REQUEST_STORAGE_FORMAT, (short) MAV_RESULT.MAV_RESULT_DENIED);
+            return;
+        }
+
+        if(!camera.isConnected()) {
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_REQUEST_STORAGE_FORMAT, (short) MAV_RESULT.MAV_RESULT_DENIED);
+            return;
+        }
+
+        SettingsDefinitions.StorageLocation location;
+
+        if(msg.param1 == CAMERA_STORAGE_LOCATION.SDCARD) {
+            location = SettingsDefinitions.StorageLocation.SDCARD;
+        } else if(msg.param1 == CAMERA_STORAGE_LOCATION.INTERNAL_STORAGE) {
+            location = SettingsDefinitions.StorageLocation.INTERNAL_STORAGE;
+        } else {
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_REQUEST_STORAGE_FORMAT, (short) MAV_RESULT.MAV_RESULT_DENIED);
+            return;
+        }
+
+        MavlinkHub.getInstance().sendCommandAck(MAV_CMD_REQUEST_STORAGE_FORMAT, (short) MAV_RESULT.MAV_RESULT_ACCEPTED);
+
+        camera.formatStorage(location, new CommonCallbacks.CompletionCallback() {
+            @Override
+            public void onResult(DJIError djiError) {
+                if(djiError == null) {
+                    MavlinkHub.getInstance().sendCommandAck(MAV_CMD_REQUEST_STORAGE_FORMAT, (short) MAV_RESULT.MAV_RESULT_SUCCESS);
+                } else {
+                    MavlinkHub.getInstance().sendCommandAck(MAV_CMD_REQUEST_STORAGE_FORMAT, (short) MAV_RESULT.MAV_RESULT_FAILED);
+                    MavlinkHub.getInstance().sendText(djiError.getDescription());
+                }
+            }
+        });
     }
 
     private void handleSetStorageLocation(msg_command_int msg) {

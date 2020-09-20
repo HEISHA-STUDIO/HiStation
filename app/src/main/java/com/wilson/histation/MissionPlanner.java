@@ -137,6 +137,7 @@ class MissionPlanner {
         switch (packet.msgid) {
             case MAVLINK_MSG_ID_MISSION_REQUEST_LIST:
                 sendWayPointCount(packet);
+                HSCloudBridge.getInstance().sendDebug("Request list");
                 break;
             case MAVLINK_MSG_ID_MISSION_COUNT:
                 startWayPointReceive(packet);
@@ -185,10 +186,12 @@ class MissionPlanner {
         HSCloudBridge.getInstance().sendDebug(msg.toString());
         if(msg.command == 16) {
             Location waypoint = new Location(msg.x, msg.y, msg.z);
-            savedWaypoints.add(waypoint);
-            waypointReceived = msg.seq + 1;
-            MApplication.LOG("Received: " + waypointReceived);
-            requestMavLinkNextWaypoint();
+            if(waypointReceived == msg.seq) {
+                savedWaypoints.add(waypoint);
+                waypointReceived = msg.seq + 1;
+                MApplication.LOG("Received: " + waypointReceived);
+                requestMavLinkNextWaypoint();
+            }
         }
     }
 
@@ -197,6 +200,7 @@ class MissionPlanner {
         msg.count = savedWaypoints.size();
 
         MavlinkHub.getInstance().sendMavlinkPacket(msg.pack());
+        HSCloudBridge.getInstance().sendDebug(msg.toString());
     }
 
     private void sendWayPoint(MAVLinkPacket packet) {
@@ -353,6 +357,7 @@ class MissionPlanner {
             @Override
             public void completed() {
                 MavlinkHub.getInstance().sendText("Position bars locked");
+                MavlinkHub.getInstance().sendCommandProgress(MAV_CMD_FLIGHT_PREPARE, (short)5, (short)1);
                 MApplication.commandBusy = false;
 
                 // Turn on rc
@@ -371,6 +376,7 @@ class MissionPlanner {
                     @Override
                     public void completed() {
                         MavlinkHub.getInstance().sendText("Remote on");
+                        MavlinkHub.getInstance().sendCommandProgress(MAV_CMD_FLIGHT_PREPARE, (short)5, (short)2);
                         MApplication.commandBusy = false;
                         // turn the drone
                         ChargePad.getInstance().handTurnOnDrone(new CommandResultListener() {
@@ -388,6 +394,7 @@ class MissionPlanner {
                             @Override
                             public void completed() {
                                 MavlinkHub.getInstance().sendText("Drone on");
+                                MavlinkHub.getInstance().sendCommandProgress(MAV_CMD_FLIGHT_PREPARE, (short)5, (short)3);
                                 MApplication.commandBusy = false;
                                 // turn off charge
                                 ChargePad.getInstance().handTurnOffCharge(new CommandResultListener() {
@@ -405,6 +412,7 @@ class MissionPlanner {
                                     @Override
                                     public void completed() {
                                         MavlinkHub.getInstance().sendText("Charge off");
+                                        MavlinkHub.getInstance().sendCommandProgress(MAV_CMD_FLIGHT_PREPARE, (short)5, (short)4);
                                         MApplication.commandBusy = false;
 
                                         ChargePad.getInstance().handOpenCanapy(new CommandResultListener() {
@@ -422,6 +430,7 @@ class MissionPlanner {
                                             @Override
                                             public void completed() {
                                                 MavlinkHub.getInstance().sendText("Preflight prepare complete");
+                                                MavlinkHub.getInstance().sendCommandProgress(MAV_CMD_FLIGHT_PREPARE, (short)5, (short)5);
                                                 MavlinkHub.getInstance().sendCommandAck(MAV_CMD_FLIGHT_PREPARE, (short)MAV_RESULT.MAV_RESULT_SUCCESS);
                                             }
 
@@ -805,7 +814,7 @@ class MissionPlanner {
             return 4;
         }
 
-        if(getMaxDistance(savedWaypoints) > 1000) {
+        if(getMaxDistance(savedWaypoints) > 5000) {
             return 5;
         }
 
@@ -813,7 +822,7 @@ class MissionPlanner {
             return 6;
         }
 
-        if(getTotalDistance(savedWaypoints) > 2000) {
+        if(getTotalDistance(savedWaypoints) > 20000) {
             return 7;
         }
 

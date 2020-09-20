@@ -23,6 +23,8 @@ class HSCloudBridge {
         @Override
         public void MQTTConnectionComplete() {
             MApplication.LOG("MQTT connect");
+            mqttManager.subscribe(device.getTopic() + "-2");
+            mqttManager.subscribe(device.getTopic() + "-t");
         }
 
         @Override
@@ -71,8 +73,6 @@ class HSCloudBridge {
                     mqttManager = new MQTTManager(url);
                     mqttManager.setMessageHandlerCallBack(callBack);
                     mqttManager.connect(false, 20, 2);
-                    mqttManager.subscribe(device.getTopic() + "-2");
-                    mqttManager.subscribe(device.getTopic() + "-t");
                     isConnected = true;
                 }
             }

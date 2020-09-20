@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 
+import com.MAVLink.DLink.msg_chargepad_status;
 import com.MAVLink.DLink.msg_command_int;
 import com.MAVLink.enums.MAV_CMD;
 import com.MAVLink.enums.MAV_RESULT;
@@ -24,6 +25,7 @@ class ChargePad {
     private byte chargeStatus = CHARGE_STATUS_UNCHARGE;
     private int chargeCurrent = 0;
     private int chargeVoltage = 0;
+    private short canopyStatus = 0;
     private boolean bLive = true;
     private long lastUpdatedTimeUs = 0;
 
@@ -109,6 +111,7 @@ class ChargePad {
                         barStatus = (byte)decoder_buffer[3];
                         chargeVoltage = decoder_buffer[8] * 256 + decoder_buffer[7];
                         chargeCurrent = decoder_buffer[10] * 256 + decoder_buffer[9];
+                        canopyStatus = (short)decoder_buffer[11];
                         lastUpdatedTimeUs = System.currentTimeMillis();
                         bLive = true;
                     } else {
@@ -266,7 +269,11 @@ class ChargePad {
         data[6] = (byte)0x00;
         data[7] = (byte)0x06;
 
-        sendData(data);
+        if(DeviceUtil.getCPUSerial().equals("6e0e687054b841d0")) {
+
+        } else {
+            sendData(data);
+        }
     }
 
     public void handCommand(msg_command_int cmd) {
@@ -301,7 +308,27 @@ class ChargePad {
             case MAV_CMD.MAV_CMD_PAD_TURN_OFF_CHARGE:
                 handTurnOffCharge(null);
                 break;
+            case MAV_CMD.MAV_CMD_PAD_REQUEST_STATUS:
+                handleStatusRequest();
+                break;
         }
+    }
+
+    public void handleStatusRequest() {
+        msg_chargepad_status msg = new msg_chargepad_status();
+
+        if(isLive()) {
+            msg.status_flags |= 0x01;
+            msg.bar_position = barStatus;
+            msg.charge_status = chargeStatus;
+            msg.charge_voltage = chargeVoltage;
+            msg.charge_current = chargeCurrent;
+            msg.canopy_status = canopyStatus;
+        } else {
+            msg.status_flags = 0;
+        }
+
+        MavlinkHub.getInstance().sendMavlinkPacket(msg.pack());
     }
 
     public void handPadLock(final CommandResultListener listener) {

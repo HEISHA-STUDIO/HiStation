@@ -412,6 +412,14 @@ public class MainActivity extends AppCompatActivity {
                     LocalTester.getInstance().testT3Streaming();
                 } else if(message.equals("FILE")) {
                     LocalTester.getInstance().testDownloadStreaming();
+                } else if(message.equals("FORMAT")) {
+                    LocalTester.getInstance().testSDFormat();
+                } else if(message.equals("DRONE")) {
+                    LocalTester.getInstance().testDroneStreaming();
+                } else if(message.equals("ZOOMIN")) {
+                    LocalTester.getInstance().testZoomIn();
+                } else if(message.equals("ZOOMOUT")) {
+                    LocalTester.getInstance().testZoomOut();
                 }
             }
         }

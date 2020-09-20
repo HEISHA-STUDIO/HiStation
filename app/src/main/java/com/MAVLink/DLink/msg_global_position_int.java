@@ -17,7 +17,7 @@ import com.MAVLink.Messages.MAVLinkPayload;
 public class msg_global_position_int extends MAVLinkMessage{
 
     public static final int MAVLINK_MSG_ID_GLOBAL_POSITION_INT = 33;
-    public static final int MAVLINK_MSG_LENGTH = 28;
+    public static final int MAVLINK_MSG_LENGTH = 32;
     private static final long serialVersionUID = MAVLINK_MSG_ID_GLOBAL_POSITION_INT;
 
 
@@ -46,6 +46,11 @@ public class msg_global_position_int extends MAVLinkMessage{
     * Altitude above ground
     */
     public int relative_alt;
+      
+    /**
+    * Distance to home.
+    */
+    public int distance_to_home;
       
     /**
     * Ground X Speed (Latitude, positive north)
@@ -88,6 +93,8 @@ public class msg_global_position_int extends MAVLinkMessage{
               
         packet.payload.putInt(relative_alt);
               
+        packet.payload.putInt(distance_to_home);
+              
         packet.payload.putShort(vx);
               
         packet.payload.putShort(vy);
@@ -116,6 +123,8 @@ public class msg_global_position_int extends MAVLinkMessage{
         this.alt = payload.getInt();
               
         this.relative_alt = payload.getInt();
+              
+        this.distance_to_home = payload.getInt();
               
         this.vx = payload.getShort();
               
@@ -146,12 +155,12 @@ public class msg_global_position_int extends MAVLinkMessage{
         unpack(mavLinkPacket.payload);        
     }
 
-                      
+                        
     /**
     * Returns a string with the MSG name and data
     */
     public String toString(){
-        return "MAVLINK_MSG_ID_GLOBAL_POSITION_INT - sysid:"+sysid+" compid:"+compid+" time_boot_ms:"+time_boot_ms+" lat:"+lat+" lon:"+lon+" alt:"+alt+" relative_alt:"+relative_alt+" vx:"+vx+" vy:"+vy+" vz:"+vz+" hdg:"+hdg+"";
+        return "MAVLINK_MSG_ID_GLOBAL_POSITION_INT - sysid:"+sysid+" compid:"+compid+" time_boot_ms:"+time_boot_ms+" lat:"+lat+" lon:"+lon+" alt:"+alt+" relative_alt:"+relative_alt+" distance_to_home:"+distance_to_home+" vx:"+vx+" vy:"+vy+" vz:"+vz+" hdg:"+hdg+"";
     }
 }
         

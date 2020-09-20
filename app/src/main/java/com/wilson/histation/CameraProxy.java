@@ -13,11 +13,15 @@ import dji.sdk.camera.VideoFeeder;
 
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_SET_CAMERA_MODE;
+import static com.MAVLink.enums.MAV_CMD.MAV_CMD_SET_CAMERA_ZOOM;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_VIDEO_START_CAPTURE;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_VIDEO_STOP_CAPTURE;
 
 class CameraProxy {
     private static final CameraProxy ourInstance = new CameraProxy();
+    private static final int zoomLengthMin = 240;
+    private static final int zoomLengthMax = 480;
+    private static final int zoomLengthStep = 10;
 
     static CameraProxy getInstance() {
         return ourInstance;
@@ -102,7 +106,45 @@ class CameraProxy {
             case MAV_CMD_VIDEO_STOP_CAPTURE:
                 handleStopVideo();
                 break;
+            case MAV_CMD_SET_CAMERA_ZOOM:
+                handleZoom(msg);
         }
+    }
+
+    private void handleZoom(msg_command_int msg) {
+        Camera camera = MApplication.getCameraInstance();
+
+        if(camera == null) {
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_SET_CAMERA_MODE, (short) MAV_RESULT.MAV_RESULT_DENIED);
+            return;
+        }
+
+        if(!camera.isConnected()) {
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_SET_CAMERA_MODE, (short) MAV_RESULT.MAV_RESULT_DENIED);
+            return;
+        }
+
+        MavlinkHub.getInstance().sendCommandAck(MAV_CMD_SET_CAMERA_MODE, (short) MAV_RESULT.MAV_RESULT_ACCEPTED);
+
+        float factor = msg.param2;
+        if(factor < 0)
+            factor = 0;
+        if(factor > 100)
+            factor = 100;
+
+        int length = zoomLengthMin + (int)(0.24*factor)*zoomLengthStep;
+
+        camera.setHybridZoomFocalLength(length, new CommonCallbacks.CompletionCallback() {
+            @Override
+            public void onResult(DJIError djiError) {
+                if(djiError == null) {
+                    MavlinkHub.getInstance().sendCommandAck(MAV_CMD_SET_CAMERA_MODE, (short) MAV_RESULT.MAV_RESULT_SUCCESS);
+                } else {
+                    MavlinkHub.getInstance().sendCommandAck(MAV_CMD_SET_CAMERA_MODE, (short) MAV_RESULT.MAV_RESULT_FAILED);
+                    HSCloudBridge.getInstance().sendDebug(djiError.getDescription());
+                }
+            }
+        });
     }
 
     private void handleSetMode(msg_command_int msg) {

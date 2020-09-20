@@ -9,11 +9,6 @@ import com.MAVLink.enums.MAV_CMD;
 import com.MAVLink.enums.MEDIAFILE_REQUEST_TYPE;
 import com.MAVLink.enums.VIDEO_STREAMING_SOURCE;
 
-import dji.common.camera.SettingsDefinitions;
-import dji.common.error.DJIError;
-import dji.common.util.CommonCallbacks;
-import dji.sdk.camera.Camera;
-
 class LocalTester {
     private static final LocalTester ourInstance = new LocalTester();
 
@@ -183,7 +178,7 @@ class LocalTester {
 
     public void testSDRawFile() {
         msg_mediafile_request msg = new msg_mediafile_request();
-        msg.storage_location = CAMERA_STORAGE_LOCATION.SDCARD;
+        msg.storage_location = CAMERA_STORAGE_LOCATION.INTERNAL_STORAGE;
         msg.index = index_in++;
         msg.request_type = MEDIAFILE_REQUEST_TYPE.RAW;
 
@@ -192,10 +187,34 @@ class LocalTester {
 
     public void testSDRawPage() {
         msg_mediafile_request msg = new msg_mediafile_request();
-        msg.storage_location = CAMERA_STORAGE_LOCATION.SDCARD;
+        msg.storage_location = CAMERA_STORAGE_LOCATION.INTERNAL_STORAGE;
         msg.request_type = MEDIAFILE_REQUEST_TYPE.PAGE;
         msg.index = 0;
         msg.page_index = 0;
+
+        MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
+    }
+
+    public void testSDFormat() {
+        msg_command_int msg = new msg_command_int();
+        msg.command = MAV_CMD.MAV_CMD_REQUEST_STORAGE_FORMAT;
+        msg.param1 = CAMERA_STORAGE_LOCATION.INTERNAL_STORAGE;
+
+        MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
+    }
+
+    public void testZoomIn() {
+        msg_command_int msg = new msg_command_int();
+        msg.command = MAV_CMD.MAV_CMD_SET_CAMERA_ZOOM;
+        msg.param2 = 7;
+
+        MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
+    }
+
+    public void testZoomOut() {
+        msg_command_int msg = new msg_command_int();
+        msg.command = MAV_CMD.MAV_CMD_SET_CAMERA_ZOOM;
+        msg.param2 = 3;
 
         MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
     }

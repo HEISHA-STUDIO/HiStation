@@ -158,6 +158,9 @@ public class MAVLinkPacket implements Serializable {
             case msg_sys_status.MAVLINK_MSG_ID_SYS_STATUS:
                 return  new msg_sys_status(this);
                  
+            case msg_chargepad_status.MAVLINK_MSG_ID_CHARGEPAD_STATUS:
+                return  new msg_chargepad_status(this);
+                 
             case msg_gps_raw_int.MAVLINK_MSG_ID_GPS_RAW_INT:
                 return  new msg_gps_raw_int(this);
                  
@@ -194,8 +197,14 @@ public class MAVLinkPacket implements Serializable {
             case msg_command_ack.MAVLINK_MSG_ID_COMMAND_ACK:
                 return  new msg_command_ack(this);
                  
+            case msg_command_progress.MAVLINK_MSG_ID_COMMAND_PROGRESS:
+                return  new msg_command_progress(this);
+                 
             case msg_radio_status.MAVLINK_MSG_ID_RADIO_STATUS:
                 return  new msg_radio_status(this);
+                 
+            case msg_battery_batterystatus.MAVLINK_MSG_ID_BATTERY_batterySTATUS:
+                return  new msg_battery_batterystatus(this);
                  
             case msg_mediafile_request_list.MAVLINK_MSG_ID_MEDIAFILE_REQUEST_LIST:
                 return  new msg_mediafile_request_list(this);

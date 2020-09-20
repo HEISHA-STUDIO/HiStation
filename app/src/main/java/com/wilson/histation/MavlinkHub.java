@@ -3,6 +3,8 @@ package com.wilson.histation;
 import com.MAVLink.DLink.msg_attitude;
 import com.MAVLink.DLink.msg_command_ack;
 import com.MAVLink.DLink.msg_command_int;
+import com.MAVLink.DLink.msg_command_progress;
+import com.MAVLink.DLink.msg_battery_batterystatus;
 import com.MAVLink.DLink.msg_global_position_int;
 import com.MAVLink.DLink.msg_gps_raw_int;
 import com.MAVLink.DLink.msg_heartbeat;
@@ -13,6 +15,7 @@ import com.MAVLink.MAVLinkPacket;
 import com.MAVLink.Parser;
 import com.MAVLink.enums.GPS_FIX_TYPE;
 import com.MAVLink.enums.MAV_AUTOPILOT;
+import com.MAVLink.enums.MAV_CMD;
 import com.MAVLink.enums.MAV_MODE_FLAG;
 import com.MAVLink.enums.MAV_SEVERITY;
 import com.MAVLink.enums.MAV_TYPE;
@@ -40,6 +43,7 @@ import static com.MAVLink.enums.MAV_CMD.MAV_CMD_ONE_KEY_TO_CHARGE;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_PAD_CANOPY_CLOSE;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_PAD_CANOPY_OPEN;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_PAD_LOCK;
+import static com.MAVLink.enums.MAV_CMD.MAV_CMD_PAD_REQUEST_STATUS;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_PAD_TURN_OFF_CHARGE;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_PAD_TURN_OFF_DRONE;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_PAD_TURN_OFF_RC;
@@ -49,6 +53,7 @@ import static com.MAVLink.enums.MAV_CMD.MAV_CMD_PAD_TURN_ON_RC;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_PAD_UNLOCK;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_SET_CAMERA_MODE;
+import static com.MAVLink.enums.MAV_CMD.MAV_CMD_SET_CAMERA_ZOOM;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_SET_STORAGE_LOCATION;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_VIDEO_START_CAPTURE;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_VIDEO_STOP_CAPTURE;
@@ -82,6 +87,9 @@ class MavlinkHub {
 
                 try {
                     sendHeartbeat();
+                    //sendBatteryStatus();
+                    //testSystemStatus();
+                    //testGlobalPosition();
                 } catch (Exception e) {
                     e.printStackTrace();
                     MApplication.LOG(e.getMessage());
@@ -227,6 +235,23 @@ class MavlinkHub {
         }
     }
 
+    private void testGlobalPosition() {
+        msg_global_position_int msg = new msg_global_position_int();
+
+        msg.alt = (int)(20.0f * 1000);
+        msg.hdg = 0;
+        msg.lat = (int)(23.567f * 10000000);
+        msg.lon = (int)(118.976 * 10000000);
+        msg.relative_alt = (int)(30.0f * 1000);
+        msg.distance_to_home = 12500;
+        msg.vx = (short)(0.0 * 100);
+        msg.vy = (short)(0.0 * 100);
+        msg.vz = (short)(0.0 * 100);
+        msg.time_boot_ms = (long)(0);
+
+        sendMavlinkPacket(msg.pack());
+    }
+
     public void sendGlobalPosition(FlightControllerState flightControllerState) {
         if(flightControllerState == null)
             return;
@@ -261,6 +286,7 @@ class MavlinkHub {
         msg.lat = (int)(locationCoordinate3D.getLatitude() * 10000000);
         msg.lon = (int)(locationCoordinate3D.getLongitude() * 10000000);
         msg.relative_alt = (int)(height * 1000);
+        msg.distance_to_home = 12500;
         msg.vx = (short)(velX * 100);
         msg.vy = (short)(velY * 100);
         msg.vz = (short)(velZ * 100);
@@ -330,6 +356,16 @@ class MavlinkHub {
         sendMavlinkPacket(msg.pack());
     }
 
+    private void testSystemStatus() {
+        msg_sys_status msg = new msg_sys_status();
+
+            msg.current_battery = (short)0;
+            msg.voltage_battery = (short)1500;
+            msg.battery_remaining = (byte)70;
+
+        sendMavlinkPacket(msg.pack());
+    }
+
     public void sendSystemStatus(BatteryState batteryState) {
         msg_sys_status msg = new msg_sys_status();
 
@@ -356,6 +392,7 @@ class MavlinkHub {
         msg_command_int msg = (msg_command_int)packet.unpack();
 
         switch (msg.command) {
+            case MAV_CMD_PAD_REQUEST_STATUS:
             case MAV_CMD_PAD_LOCK:
             case MAV_CMD_PAD_UNLOCK:
             case MAV_CMD_PAD_TURN_ON_RC:
@@ -375,12 +412,14 @@ class MavlinkHub {
                 MissionPlanner.getInstance().handleCommand(msg);
                 break;
             case MAV_CMD_SET_STORAGE_LOCATION:
+            case MAV_CMD.MAV_CMD_REQUEST_STORAGE_FORMAT:
                 MediaFileManager.getInstance().handleCommand(msg);
                 break;
             case MAV_CMD_SET_CAMERA_MODE:
             case MAV_CMD_REQUEST_CAMERA_IMAGE_CAPTURE:
             case MAV_CMD_VIDEO_START_CAPTURE:
             case MAV_CMD_VIDEO_STOP_CAPTURE:
+            case MAV_CMD_SET_CAMERA_ZOOM:
                 CameraProxy.getInstance().handleCommand(msg);
                 break;
             case MAV_CMD_VIDEO_STREAMING_REQUEST:
@@ -401,6 +440,23 @@ class MavlinkHub {
     public void sendRssi() {
         msg_radio_status msg = new msg_radio_status();
         msg.rssi = 180;
+
+        sendMavlinkPacket(msg.pack());
+    }
+
+    public void sendCommandProgress(int command, short total, short step) {
+        msg_command_progress msg = new msg_command_progress();
+        msg.command = (short)command;
+        msg.step_total = total;
+        msg.step_complete = step;
+
+        sendMavlinkPacket(msg.pack());
+    }
+
+    public void sendBatteryStatus() {
+        msg_battery_batterystatus msg = new msg_battery_batterystatus();
+        msg.time_total = 1800;
+        msg.time_remaining = 800;
 
         sendMavlinkPacket(msg.pack());
     }
