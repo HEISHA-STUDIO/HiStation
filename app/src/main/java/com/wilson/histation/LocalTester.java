@@ -3,11 +3,23 @@ package com.wilson.histation;
 import com.MAVLink.DLink.msg_command_int;
 import com.MAVLink.DLink.msg_mediafile_request;
 import com.MAVLink.DLink.msg_mediafile_request_list;
+import com.MAVLink.DLink.msg_rc_channels_override;
 import com.MAVLink.enums.CAMERA_MODE;
 import com.MAVLink.enums.CAMERA_STORAGE_LOCATION;
 import com.MAVLink.enums.MAV_CMD;
+import com.MAVLink.enums.MAV_MODE;
 import com.MAVLink.enums.MEDIAFILE_REQUEST_TYPE;
 import com.MAVLink.enums.VIDEO_STREAMING_SOURCE;
+
+import dji.common.error.DJIError;
+import dji.common.flightcontroller.virtualstick.FlightControlData;
+import dji.common.flightcontroller.virtualstick.RollPitchControlMode;
+import dji.common.flightcontroller.virtualstick.VerticalControlMode;
+import dji.common.flightcontroller.virtualstick.YawControlMode;
+import dji.common.util.CommonCallbacks;
+import dji.sdk.flightcontroller.FlightController;
+
+import static com.MAVLink.enums.MAV_CMD.MAV_CMD_DO_SET_MODE;
 
 class LocalTester {
     private static final LocalTester ourInstance = new LocalTester();
@@ -219,4 +231,73 @@ class LocalTester {
         MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
     }
 
+    public void testEnableVirtualStick() {
+        msg_command_int msg = new msg_command_int();
+        msg.command = MAV_CMD_DO_SET_MODE;
+        msg.param1 = MAV_MODE.MAV_MODE_MANUAL;
+
+        MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
+    }
+
+    public void testUP() {
+        msg_rc_channels_override msg = new msg_rc_channels_override();
+        msg.chan3_raw = 1800;
+
+        MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
+    }
+
+    public void testDown() {
+        msg_rc_channels_override msg = new msg_rc_channels_override();
+        msg.chan3_raw = 1200;
+
+        MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
+    }
+
+    public void testForward() {
+        msg_rc_channels_override msg = new msg_rc_channels_override();
+        msg.chan2_raw = 1200;
+
+        MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
+    }
+
+    public void testBackward() {
+        msg_rc_channels_override msg = new msg_rc_channels_override();
+        msg.chan2_raw = 1800;
+
+        MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
+    }
+
+    public void testLeft() {
+        msg_rc_channels_override msg = new msg_rc_channels_override();
+        msg.chan1_raw = 1200;
+
+        MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
+    }
+
+    public void testRight() {
+        msg_rc_channels_override msg = new msg_rc_channels_override();
+        msg.chan1_raw = 1800;
+
+        MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
+    }
+
+    public void testYaw() {
+        msg_rc_channels_override msg = new msg_rc_channels_override();
+        msg.chan4_raw = 1800;
+
+        MavlinkHub.getInstance().mavlink_message_handle(msg.pack());
+    }
+
+    public void testCancelMission() {
+        MissionPlanner.getInstance().handleCancelMission();
+    }
+
+    public void testRestart() {
+        MissionPlanner.getInstance().handleReStartMission();
+    }
+
+    public void testStart() {
+        MissionPlanner.getInstance().testStartMission();
+    }
 }
+

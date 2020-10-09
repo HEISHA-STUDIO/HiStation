@@ -420,6 +420,28 @@ public class MainActivity extends AppCompatActivity {
                     LocalTester.getInstance().testZoomIn();
                 } else if(message.equals("ZOOMOUT")) {
                     LocalTester.getInstance().testZoomOut();
+                } else if(message.equals("Stick")) {
+                    LocalTester.getInstance().testEnableVirtualStick();
+                } else if(message.equals("UP")) {
+                    LocalTester.getInstance().testUP();
+                } else if(message.equals("DOWN")) {
+                    LocalTester.getInstance().testDown();
+                } else if(message.equals("Forward")) {
+                    LocalTester.getInstance().testForward();
+                } else if(message.equals("Backward")) {
+                    LocalTester.getInstance().testBackward();
+                } else if(message.equals("Left")) {
+                    LocalTester.getInstance().testLeft();
+                } else if(message.equals("Right")) {
+                    LocalTester.getInstance().testRight();
+                } else if(message.equals("Yaw")) {
+                    LocalTester.getInstance().testYaw();
+                } else if(message.equals("Cancel")) {
+                    LocalTester.getInstance().testCancelMission();
+                } else if(message.equals("Restart")) {
+                    LocalTester.getInstance().testRestart();
+                } else if(message.equals("Start")) {
+                    LocalTester.getInstance().testStart();
                 }
             }
         }

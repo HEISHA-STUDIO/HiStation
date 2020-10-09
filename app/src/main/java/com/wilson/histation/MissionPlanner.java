@@ -8,7 +8,9 @@ import com.MAVLink.DLink.msg_mission_ack;
 import com.MAVLink.DLink.msg_mission_count;
 import com.MAVLink.DLink.msg_mission_item;
 import com.MAVLink.DLink.msg_mission_request;
+import com.MAVLink.DLink.msg_rc_channels_override;
 import com.MAVLink.MAVLinkPacket;
+import com.MAVLink.enums.MAV_MODE;
 import com.MAVLink.enums.MAV_RESULT;
 import com.alibaba.fastjson.JSON;
 
@@ -23,6 +25,11 @@ import java.util.List;
 
 import dji.common.error.DJIError;
 import dji.common.flightcontroller.LocationCoordinate3D;
+import dji.common.flightcontroller.virtualstick.FlightControlData;
+import dji.common.flightcontroller.virtualstick.FlightCoordinateSystem;
+import dji.common.flightcontroller.virtualstick.RollPitchControlMode;
+import dji.common.flightcontroller.virtualstick.VerticalControlMode;
+import dji.common.flightcontroller.virtualstick.YawControlMode;
 import dji.common.mission.waypoint.Waypoint;
 import dji.common.mission.waypoint.WaypointMission;
 import dji.common.mission.waypoint.WaypointMissionDownloadEvent;
@@ -43,7 +50,9 @@ import static com.MAVLink.DLink.msg_mission_count.MAVLINK_MSG_ID_MISSION_COUNT;
 import static com.MAVLink.DLink.msg_mission_item.MAVLINK_MSG_ID_MISSION_ITEM;
 import static com.MAVLink.DLink.msg_mission_request.MAVLINK_MSG_ID_MISSION_REQUEST;
 import static com.MAVLink.DLink.msg_mission_request_list.MAVLINK_MSG_ID_MISSION_REQUEST_LIST;
+import static com.MAVLink.DLink.msg_rc_channels_override.MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_DO_PAUSE_CONTINUE;
+import static com.MAVLink.enums.MAV_CMD.MAV_CMD_DO_SET_MODE;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_FLIGHT_PREPARE;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_NAV_RETURN_TO_LAUNCH;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_NAV_TAKEOFF;
@@ -79,6 +88,9 @@ class MissionPlanner {
     private WaypointMissionHeadingMode mHeadingMode = WaypointMissionHeadingMode.AUTO;
 
     public LocationCoordinate3D homeLocation = null;
+
+    boolean mannulControl = false;
+    boolean isMannulControl = false;
 
     private WaypointMissionOperatorListener eventNotificationListener = new WaypointMissionOperatorListener() {
         @Override
@@ -147,6 +159,9 @@ class MissionPlanner {
                 break;
             case MAVLINK_MSG_ID_MISSION_REQUEST:
                 sendWayPoint(packet);
+                break;
+            case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
+                handleRCOverride(packet);
                 break;
         }
     }
@@ -321,7 +336,10 @@ class MissionPlanner {
                 handleCharge();
                 break;
             case MAV_CMD_NAV_TAKEOFF:
-                handleTakeoff();
+                if(isMannulControl)
+                    mannulTakeoff();
+                else
+                    handleTakeoff();
                 break;
             case MAV_CMD_DO_PAUSE_CONTINUE:
                 handlePause();
@@ -329,7 +347,47 @@ class MissionPlanner {
             case MAV_CMD_NAV_RETURN_TO_LAUNCH:
                 handleRTL();
                 break;
+            case MAV_CMD_DO_SET_MODE:
+                handleSetMode(command);
+                break;
         }
+    }
+
+    private void handleSetMode(msg_command_int command) {
+        FlightController flightController = MApplication.getFlightControllerInstance();
+
+        if(flightController == null) {
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_DO_SET_MODE, (short)MAV_RESULT.MAV_RESULT_DENIED);
+            return;
+        }
+
+        if(!flightController.isConnected()) {
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_DO_SET_MODE, (short)MAV_RESULT.MAV_RESULT_DENIED);
+            return;
+        }
+
+        MavlinkHub.getInstance().sendCommandAck(MAV_CMD_DO_SET_MODE, (short)MAV_RESULT.MAV_RESULT_ACCEPTED);
+
+        flightController.setRollPitchControlMode(RollPitchControlMode.ANGLE);
+        flightController.setYawControlMode(YawControlMode.ANGULAR_VELOCITY);
+        flightController.setVerticalControlMode(VerticalControlMode.VELOCITY);
+        flightController.setRollPitchCoordinateSystem(FlightCoordinateSystem.BODY);
+
+        mannulControl = false;
+        if(command.param1 == MAV_MODE.MAV_MODE_MANUAL)
+            mannulControl = true;
+
+        flightController.setVirtualStickModeEnabled(mannulControl, new CommonCallbacks.CompletionCallback() {
+            @Override
+            public void onResult(DJIError djiError) {
+                if(djiError == null) {
+                    MavlinkHub.getInstance().sendCommandAck(MAV_CMD_DO_SET_MODE, (short)MAV_RESULT.MAV_RESULT_SUCCESS);
+                    isMannulControl = mannulControl;
+                } else {
+                    MavlinkHub.getInstance().sendCommandAck(MAV_CMD_DO_SET_MODE, (short)MAV_RESULT.MAV_RESULT_FAILED);
+                }
+            }
+        });
     }
 
     private void handleFlightPrepare() {
@@ -609,6 +667,65 @@ class MissionPlanner {
         });
     }
 
+    private void mannulTakeoff() {
+        int rst = preflightCheckMannul();
+        if(rst > 0) {
+            MavlinkHub.getInstance().sendText("flight check failed code: " + rst);
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_NAV_TAKEOFF, (short)MAV_RESULT.MAV_RESULT_DENIED);
+            return;
+        }
+
+        if(!ChargePad.getInstance().isLive()) {
+            MavlinkHub.getInstance().sendText("Charge pad not detected");
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_NAV_TAKEOFF, (short)MAV_RESULT.MAV_RESULT_DENIED);
+            return;
+        }
+
+        if(ChargePad.getInstance().getBarStatus() != ChargePad.BAR_STATUS_LOCKED) {
+            MavlinkHub.getInstance().sendText("drone not at center");
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_NAV_TAKEOFF, (short)MAV_RESULT.MAV_RESULT_DENIED);
+            return;
+        }
+
+        MavlinkHub.getInstance().sendCommandAck(MAV_CMD_NAV_TAKEOFF, (short)MAV_RESULT.MAV_RESULT_ACCEPTED);
+
+        homeLocation = MApplication.getFlightControllerInstance().getState().getAircraftLocation();
+
+        ChargePad.getInstance().handPadUnLock(new CommandResultListener() {
+            @Override
+            public void accepted() {
+                MavlinkHub.getInstance().sendText("trying to unlock the drone");
+            }
+
+            @Override
+            public void rejected(String reason) {
+
+            }
+
+            @Override
+            public void completed() {
+                MavlinkHub.getInstance().sendText("Trying to takeoff");
+                MApplication.getFlightControllerInstance().startTakeoff(new CommonCallbacks.CompletionCallback() {
+                    @Override
+                    public void onResult(DJIError djiError) {
+                        if(djiError == null) {
+                            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_NAV_TAKEOFF, (short)MAV_RESULT.MAV_RESULT_SUCCESS);
+                        } else {
+                            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_NAV_TAKEOFF, (short)MAV_RESULT.MAV_RESULT_FAILED);
+                            MavlinkHub.getInstance().sendText("Takeoff failed");
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void failed(String reason) {
+                MavlinkHub.getInstance().sendText("Fail to unlock the drone");
+                MavlinkHub.getInstance().sendCommandAck(MAV_CMD_NAV_TAKEOFF, (short)MAV_RESULT.MAV_RESULT_FAILED);
+            }
+        });
+    }
+
     private void handleTakeoff() {
         int rst = preflightCheck();
         if(rst > 0) {
@@ -687,7 +804,62 @@ class MissionPlanner {
         }
     }
 
+    public void handleCancelMission() {
+        waypointMissionOperator.stopMission(new CommonCallbacks.CompletionCallback() {
+            @Override
+            public void onResult(DJIError djiError) {
+                if(djiError != null) {
+                    HSCloudBridge.getInstance().sendDebug(djiError.getDescription());
+                }
+            }
+        });
+    }
+
+    public void handleReStartMission() {
+        waypointMissionOperator.startMission(new CommonCallbacks.CompletionCallback() {
+            @Override
+            public void onResult(DJIError djiError) {
+                if(djiError != null) {
+                    HSCloudBridge.getInstance().sendDebug(djiError.getDescription());
+                }
+            }
+        });
+    }
+
+    public void testStartMission() {
+        if(configureWaypoints() > 0) {
+            MavlinkHub.getInstance().sendText("fail to configure the mission");
+        } else {
+            waypointMissionOperator.uploadMission(new CommonCallbacks.CompletionCallback() {
+                @Override
+                public void onResult(DJIError djiError) {
+                    if(djiError != null) {
+                        HSCloudBridge.getInstance().sendDebug(djiError.getDescription());
+                    } else {
+                        waypointMissionOperator.startMission(new CommonCallbacks.CompletionCallback() {
+                            @Override
+                            public void onResult(DJIError djiError) {
+                                if(djiError != null) {
+                                    MavlinkHub.getInstance().sendText("fail: " + djiError.getDescription());
+                                } else {
+                                    //HSVideoFeeder.getInstance().videoSource = HSVideoFeeder.VIDEO_SOURCE_DRONE;
+                                    MavlinkHub.getInstance().sendText("mission started");
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+
+        }
+    }
+
     private void handlePause() {
+        if(isMannulControl) {
+            MavlinkHub.getInstance().sendCommandAck(MAV_CMD_DO_PAUSE_CONTINUE, (short)MAV_RESULT.MAV_RESULT_DENIED);
+            return;
+        }
+
         if(!FlightControllerProxy.getInstance().isFlying()) {
             MavlinkHub.getInstance().sendCommandAck(MAV_CMD_DO_PAUSE_CONTINUE, (short)MAV_RESULT.MAV_RESULT_DENIED);
             return;
@@ -796,7 +968,38 @@ class MissionPlanner {
         return totalDistance;
     }
 
+    public int preflightCheckMannul() {
+        if(!RemoteControllerProxy.getInstance().isLive()) {
+            return 1;
+        }
+
+        if(!FlightControllerProxy.getInstance().isLive()) {
+            return 2;
+        }
+
+        if(!FlightControllerProxy.getInstance().isPositionOK()) {
+            return 3;
+        }
+
+        if(BatteryProxy.getInstance().isLowPower()) {
+            return 8;
+        }
+
+        if(ChargePad.getInstance().getBarStatus() != ChargePad.BAR_STATUS_LOCKED) {
+            return 9;
+        }
+
+        return 0;
+    }
+
     public int preflightCheck() {
+        if(isMannulControl)
+            return preflightCheckMannul();
+        else
+            return preflightCheckAuto();
+    }
+
+    public int preflightCheckAuto() {
 
         if(!RemoteControllerProxy.getInstance().isLive()) {
             return 1;
@@ -863,6 +1066,54 @@ class MissionPlanner {
                     MavlinkHub.getInstance().sendCommandAck(MAV_CMD_NAV_RETURN_TO_LAUNCH, (short)MAV_RESULT.MAV_RESULT_SUCCESS);
                 } else {
                     MavlinkHub.getInstance().sendCommandAck(MAV_CMD_NAV_RETURN_TO_LAUNCH, (short)MAV_RESULT.MAV_RESULT_FAILED);
+                }
+            }
+        });
+    }
+
+    private void handleRCOverride(MAVLinkPacket packet) {
+        if(!isMannulControl)
+            return;
+
+        FlightController flightController = MApplication.getFlightControllerInstance();
+        if(flightController == null)
+            return;
+        if(!flightController.isConnected())
+            return;
+
+        msg_rc_channels_override msg = (msg_rc_channels_override)packet.unpack();
+
+        int roll_stick = msg.chan1_raw;
+        float roll = 0.0f;
+        if(roll_stick >= 1000 && roll_stick <= 2000) {
+            roll = (roll_stick-1500) * 60.0f / 1000;
+        }
+
+        int pitch_stick = msg.chan2_raw;
+        float pitch = 0.0f;
+        if(pitch_stick >= 1000 && pitch_stick <= 2000) {
+            pitch = (pitch_stick-1500) * 60.0f / 1000;
+        }
+
+        int thr_stick = msg.chan3_raw;
+        float thr = 0.0f;
+        if(thr_stick >= 1000 && thr_stick <= 2000) {
+            thr = (thr_stick-1500) * 10.0f / 1000;
+        }
+
+        int yaw_stick = msg.chan4_raw;
+        float yaw = 0.0f;
+        if(yaw_stick >= 1000 && yaw_stick <= 2000) {
+            yaw = (yaw_stick - 1500) * 60.0f / 1000;
+        }
+
+        FlightControlData flightControlData = new FlightControlData(pitch,roll,yaw,thr);
+
+        flightController.sendVirtualStickFlightControlData(flightControlData, new CommonCallbacks.CompletionCallback() {
+            @Override
+            public void onResult(DJIError djiError) {
+                if(djiError != null) {
+                    HSCloudBridge.getInstance().sendDebug(djiError.getDescription());
                 }
             }
         });

@@ -36,8 +36,11 @@ import static com.MAVLink.DLink.msg_mission_count.MAVLINK_MSG_ID_MISSION_COUNT;
 import static com.MAVLink.DLink.msg_mission_item.MAVLINK_MSG_ID_MISSION_ITEM;
 import static com.MAVLink.DLink.msg_mission_request.MAVLINK_MSG_ID_MISSION_REQUEST;
 import static com.MAVLink.DLink.msg_mission_request_list.MAVLINK_MSG_ID_MISSION_REQUEST_LIST;
+import static com.MAVLink.DLink.msg_rc_channels_override.MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_DO_PAUSE_CONTINUE;
+import static com.MAVLink.enums.MAV_CMD.MAV_CMD_DO_SET_MODE;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_FLIGHT_PREPARE;
+import static com.MAVLink.enums.MAV_CMD.MAV_CMD_NAV_RETURN_TO_LAUNCH;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_NAV_TAKEOFF;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_ONE_KEY_TO_CHARGE;
 import static com.MAVLink.enums.MAV_CMD.MAV_CMD_PAD_CANOPY_CLOSE;
@@ -175,6 +178,7 @@ class MavlinkHub {
             case MAVLINK_MSG_ID_MISSION_COUNT:
             case MAVLINK_MSG_ID_MISSION_ITEM:
             case MAVLINK_MSG_ID_MISSION_REQUEST:
+            case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
                 MissionPlanner.getInstance().handleMavlinkMessage(packet);
                 break;
             case MAVLINK_MSG_ID_MEDIAFILE_REQUEST_LIST:
@@ -409,6 +413,8 @@ class MavlinkHub {
             case MAV_CMD_ONE_KEY_TO_CHARGE:
             case MAV_CMD_DO_PAUSE_CONTINUE:
             case MAV_CMD_NAV_TAKEOFF:
+            case MAV_CMD_DO_SET_MODE:
+            case MAV_CMD_NAV_RETURN_TO_LAUNCH:
                 MissionPlanner.getInstance().handleCommand(msg);
                 break;
             case MAV_CMD_SET_STORAGE_LOCATION:
